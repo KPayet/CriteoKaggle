@@ -475,7 +475,7 @@ labelValid = valid$label
 MultiLogLoss(act = cbind(labelValid, 1-labelValid), cbind(predvalid, 1-predValid))
 
 #### Tout fonctionne. xgb.train me donne un logloss de 0.44951 sur le test set, mais celui de Kaggle 0.8990805
-#### 2. Essayer de voir si on peut train tout le vrai dataset sur AWS, et combien ça me donne en score
+#### 2. Essayer de voir si on peut train tout le vrai dataset sur AWS, et combien ça me donne en score // il faut utiliser une machine de 60Go de RAM
 ####     - D'abord en splitant le train set en dtrain et dtest
 ####     - Puis, en utilisant le vrai test set et en essayant de faire une submission sur Kaggle
 ####          - Pour ça, il  faut voir comment gérer les levels absents du train set
