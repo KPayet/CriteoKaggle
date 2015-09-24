@@ -11,7 +11,8 @@ MultiLogLoss <- function(act, pred)
 
 require(readr)
 
-rawData = read_delim("dac_sample.txt", delim="\t", col_names = F)
+rawDataTrain = read_delim("train.txt", delim="\t", col_names = F)
+rawDataTest = read_delim("test.txt", delim="\t", col_names = F)
 
 #countNA = function(x) {N = table(is.na(x)); return(N);}
 
@@ -19,8 +20,8 @@ rawData = read_delim("dac_sample.txt", delim="\t", col_names = F)
 
 # use only integer features for the moment
 
-intData = rawData[,1:14]
-nEntries = nrow(intData)
+# intData = rawData[,1:14]
+# nEntries = nrow(intData)
 
 # We have a lot of missing data:
 
@@ -133,9 +134,9 @@ require(caret)
 
 # xgboost
 
-require(xgboost)
+# require(xgboost)
 
-require(caTools)
+# require(caTools)
 # 
 # split = sample.split(intDataImputed$X1, SplitRatio = 0.8)
 # 
@@ -154,7 +155,7 @@ require(caTools)
 # pred = predict(xgModel, train$data)
 # labels = train$label
 # 
-require(ROCR)
+# require(ROCR)
 
 # predROC = prediction(pred, labels)
 # perfROC = performance(predROC, "tpr", "fpr")
@@ -348,21 +349,17 @@ rm(list = ls()[ls()!="rawData"])
 # The categorical features need to be converted from hexa to decimal integers, then we must one hot encode them.
 # This is going to make the number of features explode
 
-prepData = rawData
+prepDataTrain = rawDataTrain
 
-prepData$X2[is.na(prepData$X2)] = rep(-666, length(prepData$X2[is.na(prepData$X2)]))
-prepData$X3[is.na(prepData$X3)] = rep(-666, length(prepData$X3[is.na(prepData$X3)]))
-prepData$X4[is.na(prepData$X4)] = rep(-666, length(prepData$X4[is.na(prepData$X4)]))
-prepData$X5[is.na(prepData$X5)] = rep(-666, length(prepData$X5[is.na(prepData$X5)]))
-prepData$X6[is.na(prepData$X6)] = rep(-666, length(prepData$X6[is.na(prepData$X6)]))
-prepData$X7[is.na(prepData$X7)] = rep(-666, length(prepData$X7[is.na(prepData$X7)]))
-prepData$X8[is.na(prepData$X8)] = rep(-666, length(prepData$X8[is.na(prepData$X8)]))
-prepData$X9[is.na(prepData$X9)] = rep(-666, length(prepData$X9[is.na(prepData$X9)]))
-prepData$X10[is.na(prepData$X10)] = rep(-666, length(prepData$X10[is.na(prepData$X10)]))
-prepData$X11[is.na(prepData$X11)] = rep(-666, length(prepData$X11[is.na(prepData$X11)]))
-prepData$X12[is.na(prepData$X12)] = rep(-666, length(prepData$X12[is.na(prepData$X12)]))
-prepData$X13[is.na(prepData$X13)] = rep(-666, length(prepData$X13[is.na(prepData$X13)]))
-prepData$X14[is.na(prepData$X14)] = rep(-666, length(prepData$X14[is.na(prepData$X14)]))
+for(i in 2:14) {
+  prepDataTrain[,i][is.na(prepDataTrain[,i])] = rep(-666, length(prepDataTrain[,i][is.na(prepDataTrain[,i])]))
+}
+
+prepDataTest = rawDataTest
+
+for(i in 2:14) {
+  prepDataTest[,i][is.na(prepDataTest[,i])] = rep(-666, length(prepDataTest[,i][is.na(prepDataTest[,i])]))
+}
 
 # this is how we are going to prepare the categorical features
 
@@ -382,25 +379,25 @@ prepData$X14[is.na(prepData$X14)] = rep(-666, length(prepData$X14[is.na(prepData
 # that had empty string to -666.
 #. The features that have missing category are: 17, 18, 20, 26, 30, 33, 34, 35, 36 (81%), 38, 39, 40.
 
-missingDataX17 = prepData$X17==""
-missingDataX18 = prepData$X18==""
-missingDataX20 = prepData$X20==""
-missingDataX26 = prepData$X26==""
-missingDataX30 = prepData$X30==""
-missingDataX33 = prepData$X33==""
-missingDataX34 = prepData$X34==""
-missingDataX35 = prepData$X35==""
-missingDataX36 = prepData$X36==""
-missingDataX38 = prepData$X38==""
-missingDataX39 = prepData$X39==""
-missingDataX40 = prepData$X40==""
+missingDataTrainX17 = prepDataTrain$X17==""
+missingDataTrainX18 = prepDataTrain$X18==""
+missingDataTrainX20 = prepDataTrain$X20==""
+missingDataTrainX26 = prepDataTrain$X26==""
+missingDataTrainX30 = prepDataTrain$X30==""
+missingDataTrainX33 = prepDataTrain$X33==""
+missingDataTrainX34 = prepDataTrain$X34==""
+missingDataTrainX35 = prepDataTrain$X35==""
+missingDataTrainX36 = prepDataTrain$X36==""
+missingDataTrainX38 = prepDataTrain$X38==""
+missingDataTrainX39 = prepDataTrain$X39==""
+missingDataTrainX40 = prepDataTrain$X40==""
 
 for(i in 15:40){
-    testCatFeat = prepData[,i]
+    testCatFeat = prepDataTrain[,i]
     testCatFeat = as.character(lapply(testCatFeat, FUN = function(x){paste("0x",x,sep="")}))
     testCatFeat = as.numeric(testCatFeat)
     testCatFeat = as.factor(testCatFeat)
-    prepData[,i] = testCatFeat
+    prepDataTrain[,i] = testCatFeat
 }
 rm(list = c("testCatFeat", "i"))
 
@@ -408,16 +405,16 @@ rm(list = c("testCatFeat", "i"))
 # outData = model.matrix( X1~ .-1, data = testData[,1:15])
 
 ####
-#### J'en étais à preparer les categorical features. A ce stade, elles sont toutes converties en numérique. Il ne reste plus qu'à
-#### les mettre en factor, mais il y a des NA. Et il faut trouver comment gérer les NA quand on one-hot encode.
-#### Il y a un problème avec la taille des features. Dans le cas de X15, pour 1000 rows, il y a 541 features, ce qui crée une matrice de ~4MB
-#### Mais, par exemple, pour X17, il y a 43869 différentes valeurs, ce qui crée quelques choses de beaucoup trop gros, et model.matrix plante.
-#### Il faut donc régler ce problème en premier: comment utiliser model.matrix, malgré la possible taille de l'output.
-#### Il semble que le problème vienne de la quantité de mémoire utilisée durant le calcul, parce que l'output devrait être suffisamment "petit"
-#### Je m'apprêtais à essayer sparse.model.matrix
+#### J'en ?tais ? preparer les categorical features. A ce stade, elles sont toutes converties en num?rique. Il ne reste plus qu'?
+#### les mettre en factor, mais il y a des NA. Et il faut trouver comment g?rer les NA quand on one-hot encode.
+#### Il y a un probl?me avec la taille des features. Dans le cas de X15, pour 1000 rows, il y a 541 features, ce qui cr?e une matrice de ~4MB
+#### Mais, par exemple, pour X17, il y a 43869 diff?rentes valeurs, ce qui cr?e quelques choses de beaucoup trop gros, et model.matrix plante.
+#### Il faut donc r?gler ce probl?me en premier: comment utiliser model.matrix, malgr? la possible taille de l'output.
+#### Il semble que le probl?me vienne de la quantit? de m?moire utilis?e durant le calcul, parce que l'output devrait ?tre suffisamment "petit"
+#### Je m'appr?tais ? essayer sparse.model.matrix
 ####
 #### 18/09/2015:
-#### Essayé model.matrix sur AWS (r3.xlarge), mais pour tout le sample, ça marche pas non plus, même avec 30 Go de mémoire
+#### Essay? model.matrix sur AWS (r3.xlarge), mais pour tout le sample, ?a marche pas non plus, m?me avec 30 Go de m?moire
 ####
 #### 19/09/2015
 #### Essai  de sparse.model.matrix
@@ -428,57 +425,59 @@ require(Matrix)
 
 #### Essai avec tout le sample
 
-# features = sparse.model.matrix(X1~ .-1, data = prepData[,1:40]) # ça marche aussi
+# features = sparse.model.matrix(X1~ .-1, data = prepData[,1:40]) # ?a marche aussi
 
-#### Ca a l'air de marcher de cette manière.
-#### Malheureusement, ça enlève les observations où il y a des NA.
+#### Ca a l'air de marcher de cette mani?re.
+#### Malheureusement, ?a enl?ve les observations o? il y a des NA.
 #### Moi ce que je veux, c'est que si, pour une observation, j'ai un NA dans une categorical feature, alors dans ma matrix finale, 
-#### j'ai l'observation, mais avec toutes les colonnes correspondant aux différent level de la feature mis à -666
+#### j'ai l'observation, mais avec toutes les colonnes correspondant aux diff?rent level de la feature mis ? -666
 #### Ou alors, je remplace simplement les missing values par le mode de la feature en question... Dans ce cas on introduit un biais.
-#### Je vais d'abbord tester avec sparse.model.matrix, sans me soucier des NA, et trainer avec xgboost pour voir ce que ça donne.
-#### Mais ce n'est pas possible de ne pas se soucier des NA, parce que ça nous fait perdre ~ 90% des observations.
+#### Je vais d'abbord tester avec sparse.model.matrix, sans me soucier des NA, et trainer avec xgboost pour voir ce que ?a donne.
+#### Mais ce n'est pas possible de ne pas se soucier des NA, parce que ?a nous fait perdre ~ 90% des observations.
 #### Donc, je fais avec le mode imputation.
 
 for(i in 15:40) {
     
-    catFeat = prepData[,i]
+    catFeat = prepDataTrain[,i]
     topLevel = names(which.max(table(catFeat)))
-    prepData[,i][is.na(prepData[,i])] = rep(topLevel, length(prepData[,i][is.na(prepData[,i])]))
+    prepDataTrain[,i][is.na(prepDataTrain[,i])] = rep(topLevel, length(prepDataTrain[,i][is.na(prepDataTrain[,i])]))
 }
 rm(list = c("i", "catFeat", "topLevel"))
 
-
+require(xgboost)
 require(caTools)
 
-split = sample.split(prepData$X1, SplitRatio = 0.8)
+split = sample.split(prepDataTrain$X1, SplitRatio = 0.8)
 
-train = prepData[split,]
+train = prepDataTrain[split,]
 trainFeats = sparse.model.matrix(~ .-1, data = train[,2:40])
 train = list(data = trainFeats, label = train$X1)
-test = prepData[!split,]
-testFeats = sparse.model.matrix(~ .-1, data = test[,2:40])
-test = list(data = testFeats, label = test$X1)
+valid = prepDataTrain[!split,]
+validFeats = sparse.model.matrix(~ .-1, data = valid[,2:40])
+valid = list(data = validFeats, label = valid$X1)
 
 dtrain = xgb.DMatrix(data = train$data, label = train$label)
-dtest = xgb.DMatrix(data = test$data, label = test$label)
+dvalid = xgb.DMatrix(data = valid$data, label = valid$label)
 
-rm(list = c("train", "trainFeats", "testFeats", "split"))
+rm(list = c("train", "trainFeats", "validFeats", "split"))
 # # max.depth  eta nrounds gamma min_child_weight test.logloss bestIteration
 # #        6  0.03     500  3.00                1     0.469905           231
 
 xgbParams = list(max.depth=6, eta=0.03, gamma = 3, min_child_weight = 1, 
-                                  max_delta_step = 0, subsample = 0.8, colsample_bytree = 0.8, 
-                                  silent=1)
+                                  max_delta_step = 0, subsample = 0.8, colsample_bytree = 0.8, silent=1)
 
-xgModel = xgb.train(params = xgbParams, data = dtrain, watchlist = list(train=dtrain, test=dtest), 
+xgModel = xgb.train(params = xgbParams, data = dtrain, watchlist = list(train=dtrain, valid=dvalid), 
                     nrounds = 250, objective = "binary:logistic", eval_metric="logloss", verbose = 1)
 
-predTest = predict(xgModel, dtest)
-labelTest = test$label
+predValid = predict(xgModel, dvalid)
+labelValid = valid$label
 
-MultiLogLoss(act = cbind(labelTest, 1-labelTest), cbind(predTest, 1-predTest))
+MultiLogLoss(act = cbind(labelValid, 1-labelValid), cbind(predvalid, 1-predValid))
 
 #### Tout fonctionne. xgb.train me donne un logloss de 0.44951 sur le test set, mais celui de Kaggle 0.8990805
-#### 2. Essayer de voir si on peut train tout le vrai dataset sur AWS, et combien ça me donne en score
+#### 2. Essayer de voir si on peut train tout le vrai dataset sur AWS, et combien Ã§a me donne en score
+####     - D'abord en splitant le train set en dtrain et dtest
+####     - Puis, en utilisant le vrai test set et en essayant de faire une submission sur Kaggle
+####          - Pour Ã§a, il  faut voir comment gÃ©rer les levels absents du train set
 
 #### Et ensuite, avec le hashing trick ?
