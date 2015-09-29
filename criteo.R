@@ -11,7 +11,7 @@ MultiLogLoss <- function(act, pred)
 
 require(readr)
 
-rawDataTrain = read_delim("train.txt", delim="\t", col_names = F)
+rawDataTrain = read_delim("dac_sample.txt", delim="\t", col_names = F)
 rawDataTest = read_delim("test.txt", delim="\t", col_names = F)
 
 #countNA = function(x) {N = table(is.na(x)); return(N);}
@@ -112,7 +112,7 @@ rawDataTest = read_delim("test.txt", delim="\t", col_names = F)
 
 # Average removal, and standard deviation division
 
-require(caret)
+# require(caret)
 
 # intDataImputedScaled = predict(preProcess(intDataImputed[,2:14]), intDataImputed)
 # 
@@ -343,7 +343,7 @@ require(caret)
 
 # in the following, we need to introduce the categorical features
 
-rm(list = ls()[ls()!="rawData"])
+rm(list = ls()[ls()!="rawDataTrain"])
 
 # rawData[1] is label, rawData[2:14] are integer features, rawData[15:] are categorical features.
 # The categorical features need to be converted from hexa to decimal integers, then we must one hot encode them.
@@ -467,12 +467,19 @@ xgbParams = list(max.depth=6, eta=0.03, gamma = 3, min_child_weight = 1,
                                   max_delta_step = 0, subsample = 0.8, colsample_bytree = 0.8, silent=1)
 
 xgModel = xgb.train(params = xgbParams, data = dtrain, watchlist = list(train=dtrain, valid=dvalid), 
-                    nrounds = 250, objective = "binary:logistic", eval_metric="logloss", verbose = 1)
+                    nrounds = 50, objective = "binary:logistic", eval_metric="logloss", verbose = 1)
 
 predValid = predict(xgModel, dvalid)
 labelValid = valid$label
 
-MultiLogLoss(act = cbind(labelValid, 1-labelValid), cbind(predvalid, 1-predValid))
+MultiLogLoss(act = cbind(labelValid, 1-labelValid), cbind(predValid, 1-predValid))
+
+# ptrain = predict(xgModel, dtrain, outputmargin=TRUE)
+# pvalid = predict(xgModel, dvalid, outputmargin=TRUE)
+# setinfo(dtrain, "base_margin", ptrain)
+# setinfo(dvalid, "base_margin", pvalid)
+# xgModel = xgb.train(params = xgbParams, data = dtrain, watchlist = list(train=dtrain, valid=dvalid), 
+#                     nrounds = 50, objective = "binary:logistic", eval_metric="logloss", verbose = 1)
 
 #### Tout fonctionne. xgb.train me donne un logloss de 0.44951 sur le test set, mais celui de Kaggle 0.8990805
 #### 2. Essayer de voir si on peut train tout le vrai dataset sur AWS, et combien ça me donne en score // il faut utiliser une machine de 60Go de RAM
