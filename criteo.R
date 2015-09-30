@@ -11,7 +11,7 @@ MultiLogLoss <- function(act, pred)
 
 require(readr)
 
-rawDataTrain = read_delim("dac_sample.txt", delim="\t", col_names = F)
+rawDataTrain = read_delim("train.txt", delim="\t", col_names = F, n_max = 1000000)
 rawDataTest = read_delim("test.txt", delim="\t", col_names = F)
 
 #countNA = function(x) {N = table(is.na(x)); return(N);}
@@ -394,10 +394,11 @@ missingDataTrainX40 = prepDataTrain$X40==""
 
 for(i in 15:40){
     testCatFeat = prepDataTrain[,i]
-    testCatFeat = as.character(lapply(testCatFeat, FUN = function(x){paste("0x",x,sep="")}))
+    testCatFeat = as.character(sapply(testCatFeat, FUN = function(x){paste("0x",x,sep="")}))
     testCatFeat = as.numeric(testCatFeat)
     testCatFeat = as.factor(testCatFeat)
     prepDataTrain[,i] = testCatFeat
+    print(i)
 }
 rm(list = c("testCatFeat", "i"))
 
@@ -441,6 +442,7 @@ for(i in 15:40) {
     catFeat = prepDataTrain[,i]
     topLevel = names(which.max(table(catFeat)))
     prepDataTrain[,i][is.na(prepDataTrain[,i])] = rep(topLevel, length(prepDataTrain[,i][is.na(prepDataTrain[,i])]))
+    print(i)
 }
 rm(list = c("i", "catFeat", "topLevel"))
 
