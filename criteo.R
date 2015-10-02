@@ -11,7 +11,7 @@ MultiLogLoss <- function(act, pred)
 
 require(readr)
 
-rawDataTrain = read_delim("train.txt", delim="\t", col_names = F, n_max = 1000000)
+rawDataTrain = read_delim("dac_sample.txt", delim="\t", col_names = F)
 rawDataTest = read_delim("test.txt", delim="\t", col_names = F)
 
 #countNA = function(x) {N = table(is.na(x)); return(N);}
@@ -486,11 +486,13 @@ xgModel = xgb.train(params = xgbParams, data = dtrain, watchlist = list(train=dt
 #### Tout fonctionne. xgb.train me donne un logloss de 0.44951 sur le test set, mais celui de Kaggle 0.8990805
 #### 2. Essayer de voir si on peut train tout le vrai dataset sur AWS, et combien ça me donne en score // il faut utiliser une machine de 60Go de RAM
 ####  02/10/2015 !!!!!! 
-####  On n'arrive pas à train le vrai train set sur AWS. Ou alors il faut une machine avec 120 ou 240 Go de RAM.
-####   Avec 1000000 d'obs, on a toujours un MultiLogLoss pas terrible (et youjours 2x celui de xgboost ???)
-####   La prochaine étape, c'est donc de voir comment gérer les missing features dans le test set, et de faire une submission
+####  On n'arrive pas a train le vrai train set sur AWS. Ou alors il faut une machine avec 120 ou 240 Go de RAM.
+####   Avec 1000000 d'obs, on a toujours un MultiLogLoss pas terrible (et toujours 2x celui de xgboost ???)
+####   La prochaine etape, c'est donc de voir comment gerer les missing features dans le test set, et de faire une submission
 ####   sur Kaggle, afin d'avoir une meilleure idée de la performance.
 ####     - Puis, en utilisant le vrai test set et en essayant de faire une submission sur Kaggle
-####          - Pour ça, il  faut voir comment gérer les levels absents du train set
+####          - Pour ca, il  faut voir comment gerer les levels absents du train set
+####            Premier test, ne simplement rien faire, et voir si xgboost fonctionne
+####            Pas sur de pouvoir traiter sur mon portable. Parce qu'il n'y aura pas assez de m�moire pour faire le sparse matrix step du test set
 
 #### Et ensuite, avec le hashing trick ?
