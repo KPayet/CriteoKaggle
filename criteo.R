@@ -476,16 +476,20 @@ labelValid = valid$label
 
 MultiLogLoss(act = cbind(labelValid, 1-labelValid), cbind(predValid, 1-predValid))
 
-# ptrain = predict(xgModel, dtrain, outputmargin=TRUE)
-# pvalid = predict(xgModel, dvalid, outputmargin=TRUE)
-# setinfo(dtrain, "base_margin", ptrain)
-# setinfo(dvalid, "base_margin", pvalid)
-# xgModel = xgb.train(params = xgbParams, data = dtrain, watchlist = list(train=dtrain, valid=dvalid), 
-#                     nrounds = 50, objective = "binary:logistic", eval_metric="logloss", verbose = 1)
+ptrain = predict(xgModel, dtrain, outputmargin=TRUE)
+pvalid = predict(xgModel, dvalid, outputmargin=TRUE)
+setinfo(dtrain, "base_margin", ptrain)
+setinfo(dvalid, "base_margin", pvalid)
+xgModel = xgb.train(params = xgbParams, data = dtrain, watchlist = list(train=dtrain, valid=dvalid), 
+                    nrounds = 250, objective = "binary:logistic", eval_metric="logloss", verbose = 1)
 
 #### Tout fonctionne. xgb.train me donne un logloss de 0.44951 sur le test set, mais celui de Kaggle 0.8990805
 #### 2. Essayer de voir si on peut train tout le vrai dataset sur AWS, et combien ça me donne en score // il faut utiliser une machine de 60Go de RAM
-####     - D'abord en splitant le train set en dtrain et dtest
+####  02/10/2015 !!!!!! 
+####  On n'arrive pas à train le vrai train set sur AWS. Ou alors il faut une machine avec 120 ou 240 Go de RAM.
+####   Avec 1000000 d'obs, on a toujours un MultiLogLoss pas terrible (et youjours 2x celui de xgboost ???)
+####   La prochaine étape, c'est donc de voir comment gérer les missing features dans le test set, et de faire une submission
+####   sur Kaggle, afin d'avoir une meilleure idée de la performance.
 ####     - Puis, en utilisant le vrai test set et en essayant de faire une submission sur Kaggle
 ####          - Pour ça, il  faut voir comment gérer les levels absents du train set
 
