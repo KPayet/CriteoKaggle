@@ -519,10 +519,12 @@ MultiLogLoss(act = cbind(labelValid, 1-labelValid), cbind(predValid, 1-predValid
 testFeats = sparse.model.matrix(~., data = prepDataTest)
 dtest = xgb.DMatrix(data = testFeats)
 predTest = predict(xgModel, dtest)
+predTest = predtest
 
 # predictions = as.integer(predTest>0.2252) # try 0.31
 
-
+predDF = data.frame(ID=1:length(predTest)+5999999, Predicted=predTest)
+write.csv(predDF, "predictions_1.csv", row.names=F)
 
 #### Tout fonctionne. xgb.train me donne un logloss de 0.44951 sur le test set, mais celui de Kaggle 0.8990805
 #### 2. Essayer de voir si on peut train tout le vrai dataset sur AWS, et combien ça me donne en score // il faut utiliser une machine de 60Go de RAM
