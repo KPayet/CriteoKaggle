@@ -484,19 +484,19 @@ rm(list = c("train", "trainFeats", "validFeats", "split"))
 # # max.depth  eta nrounds gamma min_child_weight test.logloss bestIteration
 # #        6  0.03     500  3.00                1     0.469905           231
 
-xgbParams = list(max.depth=6, eta=0.03, gamma = 3, min_child_weight = 1, 
-                                  max_delta_step = 0, subsample = 0.8, colsample_bytree = 0.8, silent=1)
+xgbParams = list(max.depth=9, eta=0.01, gamma = 3, min_child_weight = 1, 
+                 max_delta_step = 0, subsample = 0.8, colsample_bytree = 0.8, silent=1, scale_pos_weight=1.)
 
 xgModel = xgb.train(params = xgbParams, data = dtrain, watchlist = list(train=dtrain, valid=dvalid), 
                     nrounds = 250, objective = "binary:logistic", eval_metric="logloss", verbose = 1)
 
 # Continued training
-# ptrain = predict(xgModel, dtrain, outputmargin=TRUE)
-# pvalid = predict(xgModel, dvalid, outputmargin=TRUE)
-# setinfo(dtrain, "base_margin", ptrain)
-# setinfo(dvalid, "base_margin", pvalid)
-# xgModel = xgb.train(params = xgbParams, data = dtrain, watchlist = list(train=dtrain, valid=dvalid), 
-#                     nrounds = 250, objective = "binary:logistic", eval_metric="logloss", verbose = 1)
+ptrain = predict(xgModel, dtrain, outputmargin=TRUE)
+pvalid = predict(xgModel, dvalid, outputmargin=TRUE)
+setinfo(dtrain, "base_margin", ptrain)
+setinfo(dvalid, "base_margin", pvalid)
+xgModel = xgb.train(params = xgbParams, data = dtrain, watchlist = list(train=dtrain, valid=dvalid), 
+                    nrounds = 100, objective = "binary:logistic", eval_metric="logloss", verbose = 1)
 
 predValid = predict(xgModel, dvalid)
 labelValid = valid$label
@@ -519,11 +519,10 @@ MultiLogLoss(act = cbind(labelValid, 1-labelValid), cbind(predValid, 1-predValid
 testFeats = sparse.model.matrix(~., data = prepDataTest)
 dtest = xgb.DMatrix(data = testFeats)
 predTest = predict(xgModel, dtest)
-predTest = predtest
 
 # predictions = as.integer(predTest>0.2252) # try 0.31
 
-predDF = data.frame(ID=1:length(predTest)+5999999, Predicted=predTest)
+predDF = data.frame(ID=1:length(predTest)+59999999, Predicted=predTest)
 write.csv(predDF, "predictions_1.csv", row.names=F)
 
 #### Tout fonctionne. xgb.train me donne un logloss de 0.44951 sur le test set, mais celui de Kaggle 0.8990805
@@ -536,5 +535,10 @@ write.csv(predDF, "predictions_1.csv", row.names=F)
 ####     - Puis, en utilisant le vrai test set et en essayant de faire une submission sur Kaggle
 ####          - Pour ca, il  faut voir comment gerer les levels absents du train set
 ####            Premier test, ne simplement rien faire, et voir si xgboost fonctionne ==> 03/10/2015 !!! Ca marche !
+####  !!!! Première submission reussie. J'ai un score de 0.57. Totalement pourri, mais absolument pas le 0.9 que MultiLogLoss
+####  me donne.... Mais bon, c'était en utilisant seulement le sample.
+####  Prochaine etape : utiliser 1 ou 2 millions d'observations, pour voir comment ça ameliore
+####  Ensuite, il faudra utiliser le hash trick pour voir comment ca reduit la taille, et si ca permet de trainer
+####  le full dataset sur AWS
 
 #### Et ensuite, avec le hashing trick ?
