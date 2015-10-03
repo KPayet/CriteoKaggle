@@ -518,7 +518,6 @@ predTest = predict(xgModel, dtest)
 ####   sur Kaggle, afin d'avoir une meilleure idée de la performance.
 ####     - Puis, en utilisant le vrai test set et en essayant de faire une submission sur Kaggle
 ####          - Pour ca, il  faut voir comment gerer les levels absents du train set
-####            Premier test, ne simplement rien faire, et voir si xgboost fonctionne
-####            Pas sur de pouvoir traiter sur mon portable. Parce qu'il n'y aura pas assez de m?moire pour faire le sparse matrix step du test set
+####            Premier test, ne simplement rien faire, et voir si xgboost fonctionne ==> 03/10/2015 !!! Ca marche !
 
 #### Et ensuite, avec le hashing trick ?
