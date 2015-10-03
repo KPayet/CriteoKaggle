@@ -357,7 +357,7 @@ for(i in 2:14) {
 
 prepDataTest = rawDataTest
 
-for(i in 2:14) {
+for(i in 1:13) {
   prepDataTest[,i][is.na(prepDataTest[,i])] = rep(-666, length(prepDataTest[,i][is.na(prepDataTest[,i])]))
 }
 
@@ -399,6 +399,16 @@ for(i in 15:40){
     testCatFeat = as.factor(testCatFeat)
     prepDataTrain[,i] = testCatFeat
     print(i)
+}
+rm(list = c("testCatFeat", "i"))
+
+for(i in 14:39){
+  testCatFeat = prepDataTest[,i]
+  testCatFeat = as.character(sapply(testCatFeat, FUN = function(x){paste("0x",x,sep="")}))
+  testCatFeat = as.numeric(testCatFeat)
+  testCatFeat = as.factor(testCatFeat)
+  prepDataTest[,i] = testCatFeat
+  print(i)
 }
 rm(list = c("testCatFeat", "i"))
 
@@ -446,10 +456,19 @@ for(i in 15:40) {
 }
 rm(list = c("i", "catFeat", "topLevel"))
 
+for(i in 14:39) {
+  
+  catFeat = prepDataTest[,i]
+  topLevel = names(which.max(table(catFeat)))
+  prepDataTest[,i][is.na(prepDataTest[,i])] = rep(topLevel, length(prepDataTest[,i][is.na(prepDataTest[,i])]))
+  print(i)
+}
+rm(list = c("i", "catFeat", "topLevel"))
+
 require(xgboost)
 require(caTools)
 
-split = sample.split(prepDataTrain$X1, SplitRatio = 0.8)
+split = sample.split(prepDataTrain$X1, SplitRatio = 0.99)
 
 train = prepDataTrain[split,]
 trainFeats = sparse.model.matrix(~ .-1, data = train[,2:40])
@@ -469,19 +488,26 @@ xgbParams = list(max.depth=6, eta=0.03, gamma = 3, min_child_weight = 1,
                                   max_delta_step = 0, subsample = 0.8, colsample_bytree = 0.8, silent=1)
 
 xgModel = xgb.train(params = xgbParams, data = dtrain, watchlist = list(train=dtrain, valid=dvalid), 
-                    nrounds = 50, objective = "binary:logistic", eval_metric="logloss", verbose = 1)
+                    nrounds = 250, objective = "binary:logistic", eval_metric="logloss", verbose = 1)
+
+# Continued training
+# ptrain = predict(xgModel, dtrain, outputmargin=TRUE)
+# pvalid = predict(xgModel, dvalid, outputmargin=TRUE)
+# setinfo(dtrain, "base_margin", ptrain)
+# setinfo(dvalid, "base_margin", pvalid)
+# xgModel = xgb.train(params = xgbParams, data = dtrain, watchlist = list(train=dtrain, valid=dvalid), 
+#                     nrounds = 250, objective = "binary:logistic", eval_metric="logloss", verbose = 1)
 
 predValid = predict(xgModel, dvalid)
 labelValid = valid$label
 
 MultiLogLoss(act = cbind(labelValid, 1-labelValid), cbind(predValid, 1-predValid))
 
-ptrain = predict(xgModel, dtrain, outputmargin=TRUE)
-pvalid = predict(xgModel, dvalid, outputmargin=TRUE)
-setinfo(dtrain, "base_margin", ptrain)
-setinfo(dvalid, "base_margin", pvalid)
-xgModel = xgb.train(params = xgbParams, data = dtrain, watchlist = list(train=dtrain, valid=dvalid), 
-                    nrounds = 250, objective = "binary:logistic", eval_metric="logloss", verbose = 1)
+## Predictions on the test set, and make submission
+
+testFeats = sparse.model.matrix(~., data = prepDataTest)
+dtest = xgb.DMatrix(data = testFeats)
+predTest = predict(xgModel, dtest)
 
 #### Tout fonctionne. xgb.train me donne un logloss de 0.44951 sur le test set, mais celui de Kaggle 0.8990805
 #### 2. Essayer de voir si on peut train tout le vrai dataset sur AWS, et combien Ã§a me donne en score // il faut utiliser une machine de 60Go de RAM
@@ -493,6 +519,6 @@ xgModel = xgb.train(params = xgbParams, data = dtrain, watchlist = list(train=dt
 ####     - Puis, en utilisant le vrai test set et en essayant de faire une submission sur Kaggle
 ####          - Pour ca, il  faut voir comment gerer les levels absents du train set
 ####            Premier test, ne simplement rien faire, et voir si xgboost fonctionne
-####            Pas sur de pouvoir traiter sur mon portable. Parce qu'il n'y aura pas assez de mémoire pour faire le sparse matrix step du test set
+####            Pas sur de pouvoir traiter sur mon portable. Parce qu'il n'y aura pas assez de m?moire pour faire le sparse matrix step du test set
 
 #### Et ensuite, avec le hashing trick ?
