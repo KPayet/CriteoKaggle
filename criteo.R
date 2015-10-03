@@ -468,7 +468,7 @@ rm(list = c("i", "catFeat", "topLevel"))
 require(xgboost)
 require(caTools)
 
-split = sample.split(prepDataTrain$X1, SplitRatio = 0.99)
+split = sample.split(prepDataTrain$X1, SplitRatio = 0.8)
 
 train = prepDataTrain[split,]
 trainFeats = sparse.model.matrix(~ .-1, data = train[,2:40])
@@ -501,6 +501,17 @@ xgModel = xgb.train(params = xgbParams, data = dtrain, watchlist = list(train=dt
 predValid = predict(xgModel, dvalid)
 labelValid = valid$label
 
+# Compute best threshold for prediction, on dvalid
+
+require(ROCR)
+
+predROC = prediction(predValid, labelValid)
+perfROC = performance(predROC, "tpr", "fpr")
+performance(predROC, "auc")@"y.values"[[1]]
+plot(perfROC, colorize=T)
+
+#### cela vient tout simplement de l'imbalance des class. Pour la suite, utiliser comme threshold 0.2252
+
 MultiLogLoss(act = cbind(labelValid, 1-labelValid), cbind(predValid, 1-predValid))
 
 ## Predictions on the test set, and make submission
@@ -508,6 +519,10 @@ MultiLogLoss(act = cbind(labelValid, 1-labelValid), cbind(predValid, 1-predValid
 testFeats = sparse.model.matrix(~., data = prepDataTest)
 dtest = xgb.DMatrix(data = testFeats)
 predTest = predict(xgModel, dtest)
+
+# predictions = as.integer(predTest>0.2252) # try 0.31
+
+
 
 #### Tout fonctionne. xgb.train me donne un logloss de 0.44951 sur le test set, mais celui de Kaggle 0.8990805
 #### 2. Essayer de voir si on peut train tout le vrai dataset sur AWS, et combien ça me donne en score // il faut utiliser une machine de 60Go de RAM
