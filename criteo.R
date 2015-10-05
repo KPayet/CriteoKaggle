@@ -541,4 +541,21 @@ write.csv(predDF, "predictions_1.csv", row.names=F)
 ####  Ensuite, il faudra utiliser le hash trick pour voir comment ca reduit la taille, et si ca permet de trainer
 ####  le full dataset sur AWS
 
-#### Et ensuite, avec le hashing trick ?
+# Essai de Featurehashing
+require(FeatureHashing)
+
+train = prepDataTrain[split,]
+trainHashFeats = hashed.model.matrix(~ .-1, data = train[,2:40], hash.size = 2^10, transpose = F)
+train = list(data = trainHashFeats, label = train$X1)
+valid = prepDataTrain[!split,]
+validHashFeats = hashed.model.matrix(~ .-1, data = valid[,2:40], hash.size = 2^10, transpose = F)
+valid = list(data = validHashFeats, label = valid$X1)
+
+dtrain = xgb.DMatrix(data = train$data, label = train$label)
+dvalid = xgb.DMatrix(data = valid$data, label = valid$label)
+xgbParams = list(max.depth=7, eta=0.01, gamma = 3, min_child_weight = 1, 
+                 max_delta_step = 0, subsample = 0.8, colsample_bytree = 0.8, silent=1, scale_pos_weight=1.)
+
+xgModel = xgb.train(params = xgbParams, data = dtrain, watchlist = list(train=dtrain, valid=dvalid), 
+                    nrounds = 250, objective = "binary:logistic", eval_metric="logloss", verbose = 1)
+
