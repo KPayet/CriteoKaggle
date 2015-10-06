@@ -553,9 +553,9 @@ valid = list(data = validHashFeats, label = valid$X1)
 
 dtrain = xgb.DMatrix(data = train$data, label = train$label)
 dvalid = xgb.DMatrix(data = valid$data, label = valid$label)
-xgbParams = list(max.depth=7, eta=0.01, gamma = 3, min_child_weight = 1, 
-                 max_delta_step = 0, subsample = 0.8, colsample_bytree = 0.8, silent=1, scale_pos_weight=1.)
+xgbParams = list(max.depth=6, eta=0.03, gamma = 3, min_child_weight = 1, 
+                 max_delta_step = 1, subsample = 0.8, colsample_bytree = 0.8, silent=1, scale_pos_weight=1.)
 
 xgModel = xgb.train(params = xgbParams, data = dtrain, watchlist = list(train=dtrain, valid=dvalid), 
-                    nrounds = 250, objective = "binary:logistic", eval_metric="logloss", verbose = 1)
+                    nrounds = 50, objective = "binary:logistic", eval_metric="logloss", verbose = 1)
 
