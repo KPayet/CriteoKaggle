@@ -551,11 +551,32 @@ valid = prepDataTrain[!split,]
 validHashFeats = hashed.model.matrix(~ .-1, data = valid[,2:40], hash.size = 2^10, transpose = F)
 valid = list(data = validHashFeats, label = valid$X1)
 
+train = readRDS("trainListHashed1024.rds")
+valid = readRDS("validListHashed1024.rds")
+
 dtrain = xgb.DMatrix(data = train$data, label = train$label)
 dvalid = xgb.DMatrix(data = valid$data, label = valid$label)
-xgbParams = list(max.depth=7, eta=0.01, gamma = 3, min_child_weight = 1, 
-                 max_delta_step = 0, subsample = 0.8, colsample_bytree = 0.8, silent=1, scale_pos_weight=1.)
+xgbParams = list(max.depth=6, eta=0.03, gamma = 3, min_child_weight = 1, 
+                 max_delta_step = 1, subsample = 0.8, colsample_bytree = 0.8, silent=1, scale_pos_weight=1.)
 
 xgModel = xgb.train(params = xgbParams, data = dtrain, watchlist = list(train=dtrain, valid=dvalid), 
-                    nrounds = 250, objective = "binary:logistic", eval_metric="logloss", verbose = 1)
+                    nrounds = 50, objective = "binary:logistic", eval_metric="logloss", verbose = 1)
 
+# Continued training
+ptrain = predict(xgModel, dtrain, outputmargin=TRUE)
+pvalid = predict(xgModel, dvalid, outputmargin=TRUE)
+setinfo(dtrain, "base_margin", ptrain)
+setinfo(dvalid, "base_margin", pvalid)
+xgModel = xgb.train(params = xgbParams, data = dtrain, watchlist = list(train=dtrain, valid=dvalid), 
+                    nrounds = 50, objective = "binary:logistic", eval_metric="logloss", verbose = 1)
+## Predictions on the test set, and make submission
+
+# testFeats = readRDS("testListHashed1024.rds")
+# testFeats = hashed.model.matrix(~ .-1, data = prepDataTest, hash.size = 2^10, transpose = F)
+# dtest = xgb.DMatrix(data = testFeats)
+predTest = predict(xgModel, dtest)
+
+# predictions = as.integer(predTest>0.2252) # try 0.31
+
+predDF = data.frame(Id=1:length(predTest)+59999999, Predicted=predTest)
+write.csv(predDF, "predictions_100_hashed1024.csv", row.names=F)
