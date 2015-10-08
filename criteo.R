@@ -556,27 +556,42 @@ valid = readRDS("validListHashed1024.rds")
 
 dtrain = xgb.DMatrix(data = train$data, label = train$label)
 dvalid = xgb.DMatrix(data = valid$data, label = valid$label)
+
+testFeats = readRDS("testListHashed1024.rds")
+# testFeats = hashed.model.matrix(~ .-1, data = prepDataTest, hash.size = 2^10, transpose = F)
+dtest = xgb.DMatrix(data = testFeats)
+
 xgbParams = list(max.depth=6, eta=0.03, gamma = 3, min_child_weight = 1, 
                  max_delta_step = 1, subsample = 0.8, colsample_bytree = 0.8, silent=1, scale_pos_weight=1.)
 
 xgModel = xgb.train(params = xgbParams, data = dtrain, watchlist = list(train=dtrain, valid=dvalid), 
-                    nrounds = 50, objective = "binary:logistic", eval_metric="logloss", verbose = 1)
+                    nrounds = 1, objective = "binary:logistic", eval_metric="logloss", verbose = 1)
 
-# Continued training
-ptrain = predict(xgModel, dtrain, outputmargin=TRUE)
-pvalid = predict(xgModel, dvalid, outputmargin=TRUE)
-setinfo(dtrain, "base_margin", ptrain)
-setinfo(dvalid, "base_margin", pvalid)
-xgModel = xgb.train(params = xgbParams, data = dtrain, watchlist = list(train=dtrain, valid=dvalid), 
-                    nrounds = 50, objective = "binary:logistic", eval_metric="logloss", verbose = 1)
-## Predictions on the test set, and make submission
+alreadyDone = 1
 
-# testFeats = readRDS("testListHashed1024.rds")
-# testFeats = hashed.model.matrix(~ .-1, data = prepDataTest, hash.size = 2^10, transpose = F)
-# dtest = xgb.DMatrix(data = testFeats)
-predTest = predict(xgModel, dtest)
-
-# predictions = as.integer(predTest>0.2252) # try 0.31
-
-predDF = data.frame(Id=1:length(predTest)+59999999, Predicted=predTest)
-write.csv(predDF, "predictions_100_hashed1024.csv", row.names=F)
+for(i in c("50")) {
+  
+  nMoreRounds = i - alreadyDone
+  
+  # Continued training
+  ptrain = predict(xgModel, dtrain, outputmargin=TRUE)
+  pvalid = predict(xgModel, dvalid, outputmargin=TRUE)
+  setinfo(dtrain, "base_margin", ptrain)
+  setinfo(dvalid, "base_margin", pvalid)
+  xgModel = xgb.train(params = xgbParams, data = dtrain, watchlist = list(train=dtrain, valid=dvalid), 
+                      nrounds = nMoreRounds, objective = "binary:logistic", eval_metric="logloss", verbose = 1)
+  ## Predictions on the test set, and make submission
+  
+  predTest = predict(xgModel, dtest)
+  predDF = data.frame(Id=1:length(predTest)+59999999, Predicted=predTest)
+  write.csv(predDF, paste("predictions_",i,"_hashed1024.csv", sep = ""), row.names=F)
+  saveRDS(xgModel, paste("model_",i,"_rounds.xgb", sep=""))
+  
+  # copy to s3 to save
+  system(command = paste("sudo aws s3 cp predictions_",i,"_hashed1024.csv s3://kpayets3/", sep=""), 
+         intern = F, ignore.stdout = T, ignore.stderr = T)
+  system(command = paste("sudo aws s3 cp model_",i,"_rounds.xgb s3://kpayets3/", sep=""), 
+         intern = F, ignore.stdout = T, ignore.stderr = T)
+  
+  alreadyDone = i
+}
