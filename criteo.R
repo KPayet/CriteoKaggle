@@ -569,7 +569,7 @@ xgModel = xgb.train(params = xgbParams, data = dtrain, watchlist = list(train=dt
 
 alreadyDone = 1
 
-for(i in c("50")) {
+for(i in c(50, 100, 200, 500, 1000, 2000)) {
   
   nMoreRounds = i - alreadyDone
   
@@ -588,10 +588,15 @@ for(i in c("50")) {
   saveRDS(xgModel, paste("model_",i,"_rounds.xgb", sep=""))
   
   # copy to s3 to save
-  system(command = paste("sudo aws s3 cp predictions_",i,"_hashed1024.csv s3://kpayets3/", sep=""), 
-         intern = F, ignore.stdout = T, ignore.stderr = T)
-  system(command = paste("sudo aws s3 cp model_",i,"_rounds.xgb s3://kpayets3/", sep=""), 
-         intern = F, ignore.stdout = T, ignore.stderr = T)
+#   system(command = paste("sudo aws s3 cp predictions_",i,"_hashed1024.csv s3://kpayets3/", sep=""), 
+#          intern = F, ignore.stdout = T, ignore.stderr = T)
+#   system(command = paste("sudo aws s3 cp model_",i,"_rounds.xgb s3://kpayets3/", sep=""), 
+#          intern = F, ignore.stdout = T, ignore.stderr = T)
+  writeLines(c(paste("sudo aws s3 cp predictions_",i,"_hashed1024.csv s3://kpayets3/", sep=""),
+               paste("sudo aws s3 cp model_",i,"_rounds.xgb s3://kpayets3/", sep=""),
+               paste("sudo rm predictions_",i,"_hashed1024.csv", sep=""),
+               paste("sudo rm model_",i,"_rounds.xgb", sep="")),
+             con = "copyTos3", sep = "\n")
   
   alreadyDone = i
 }
