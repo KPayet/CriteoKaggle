@@ -543,6 +543,7 @@ write.csv(predDF, "predictions_1.csv", row.names=F)
 
 # Essai de Featurehashing
 require(FeatureHashing)
+require(xgboost)
 
 train = prepDataTrain[split,]
 trainHashFeats = hashed.model.matrix(~ .-1, data = train[,2:40], hash.size = 2^10, transpose = F)
@@ -554,6 +555,9 @@ valid = list(data = validHashFeats, label = valid$X1)
 train = readRDS("trainListHashed1024.rds")
 valid = readRDS("validListHashed1024.rds")
 
+shuf = sample(1:nrow(train$data))
+train$data = train$data[shuf,]
+train$label = train$label[shuf,]
 dtrain = xgb.DMatrix(data = train$data, label = train$label)
 dvalid = xgb.DMatrix(data = valid$data, label = valid$label)
 
@@ -561,11 +565,11 @@ testFeats = readRDS("testListHashed1024.rds")
 # testFeats = hashed.model.matrix(~ .-1, data = prepDataTest, hash.size = 2^10, transpose = F)
 dtest = xgb.DMatrix(data = testFeats)
 
-xgbParams = list(max.depth=6, eta=0.03, gamma = 3, min_child_weight = 1, 
-                 max_delta_step = 1, subsample = 0.8, colsample_bytree = 0.8, silent=1, scale_pos_weight=1.)
+xgbParams = list(max.depth=6, eta=0.1, gamma = 3, min_child_weight = 1, 
+                 max_delta_step = 0, subsample = 0.8, colsample_bytree = 0.8, silent=1, scale_pos_weight=2.902845)
 
 xgModel = xgb.train(params = xgbParams, data = dtrain, watchlist = list(train=dtrain, valid=dvalid), 
-                    nrounds = 1, objective = "binary:logistic", eval_metric="logloss", verbose = 1)
+                    nrounds = 1, objective = "binary:logistic", eval_metric="auc", verbose = 1)
 
 alreadyDone = 1
 
@@ -579,7 +583,7 @@ for(i in c(50, 100, 200, 500, 1000, 2000)) {
   setinfo(dtrain, "base_margin", ptrain)
   setinfo(dvalid, "base_margin", pvalid)
   xgModel = xgb.train(params = xgbParams, data = dtrain, watchlist = list(train=dtrain, valid=dvalid), 
-                      nrounds = nMoreRounds, objective = "binary:logistic", eval_metric="logloss", verbose = 1)
+                      nrounds = nMoreRounds, objective = "binary:logistic", eval_metric="auc", verbose = 1)
   ## Predictions on the test set, and make submission
   
   predTest = predict(xgModel, dtest)
