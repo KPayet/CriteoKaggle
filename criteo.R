@@ -11,7 +11,8 @@ MultiLogLoss <- function(act, pred)
 
 require(readr)
 
-rawDataTrain = read_delim("dac_sample.txt", delim="\t", col_names = F)
+rawDataTrain = read_delim("train.txt", delim="\t", col_names = F)
+rawDataTrain = rawDataTrain[sample(1:nrow(rawDataTrain), nrow(rawDataTrain), replace=F),]
 rawDataTest = read_delim("test.txt", delim="\t", col_names = F)
 
 #countNA = function(x) {N = table(is.na(x)); return(N);}
@@ -349,6 +350,9 @@ rm(list = ls()[ls()!="rawDataTrain"])
 # The categorical features need to be converted from hexa to decimal integers, then we must one hot encode them.
 # This is going to make the number of features explode
 
+rawDataTrain[,2:14] = predict(preProcess(rawDataTrain[,2:14]), rawDataTrain[,2:14])
+rawDataTest[,1:13] = predict(preProcess(rawDataTest[,1:13]), rawDataTest[,1:13])
+
 prepDataTrain = rawDataTrain
 
 for(i in 2:14) {
@@ -545,24 +549,25 @@ write.csv(predDF, "predictions_1.csv", row.names=F)
 require(FeatureHashing)
 require(xgboost)
 
+split = sample.split(prepDataTrain$X1, SplitRatio = 0.97)
+
 train = prepDataTrain[split,]
 trainHashFeats = hashed.model.matrix(~ .-1, data = train[,2:40], hash.size = 2^10, transpose = F)
 train = list(data = trainHashFeats, label = train$X1)
 valid = prepDataTrain[!split,]
-validHashFeats = hashed.model.matrix(~ .-1, data = valid[,2:40], hash.size = 2^10, transpose = F)
+validHashFeats = hashed.model.matrix(~ .-1, data = valid[,2:40], hash.size = 2^11, transpose = F)
 valid = list(data = validHashFeats, label = valid$X1)
 
+saveRDS(train, "trainListHashed2048.rds")
 train = readRDS("trainListHashed1024.rds")
 valid = readRDS("validListHashed1024.rds")
 
-shuf = sample(1:nrow(train$data))
-train$data = train$data[shuf,]
-train$label = train$label[shuf,]
 dtrain = xgb.DMatrix(data = train$data, label = train$label)
 dvalid = xgb.DMatrix(data = valid$data, label = valid$label)
 
-testFeats = readRDS("testListHashed1024.rds")
-# testFeats = hashed.model.matrix(~ .-1, data = prepDataTest, hash.size = 2^10, transpose = F)
+# testFeats = readRDS("testListHashed1024.rds")
+testFeats = hashed.model.matrix(~ .-1, data = prepDataTest, hash.size = 2^11, transpose = F)
+saveRDS(testFeats, "testListHashed2048.rds")
 dtest = xgb.DMatrix(data = testFeats)
 
 xgbParams = list(max.depth=6, eta=0.1, gamma = 3, min_child_weight = 1, 
