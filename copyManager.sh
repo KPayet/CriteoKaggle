@@ -8,6 +8,6 @@ while [ $COUNTER -lt 1 ]; do
             sudo ./copyTos3;
             sudo rm ./copyTos3;
     fi
-    sleep 10m;
+    sleep 1m;
 done
 
