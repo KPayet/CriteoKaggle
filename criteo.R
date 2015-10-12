@@ -558,27 +558,27 @@ valid = prepDataTrain[!split,]
 validHashFeats = hashed.model.matrix(~ .-1, data = valid[,2:40], hash.size = 2^11, transpose = F)
 valid = list(data = validHashFeats, label = valid$X1)
 
-saveRDS(train, "trainListHashed2048.rds")
-train = readRDS("trainListHashed1024.rds")
-valid = readRDS("validListHashed1024.rds")
+# saveRDS(train, "trainListHashed2048.rds")
+train = readRDS("trainListHashed2048.rds")
+valid = readRDS("validListHashed2048.rds")
 
 dtrain = xgb.DMatrix(data = train$data, label = train$label)
 dvalid = xgb.DMatrix(data = valid$data, label = valid$label)
 
-# testFeats = readRDS("testListHashed1024.rds")
-testFeats = hashed.model.matrix(~ .-1, data = prepDataTest, hash.size = 2^11, transpose = F)
-saveRDS(testFeats, "testListHashed2048.rds")
+testFeats = readRDS("testListHashed2048.rds")
+# testFeats = hashed.model.matrix(~ .-1, data = prepDataTest, hash.size = 2^11, transpose = F)
+# saveRDS(testFeats, "testListHashed2048.rds")
 dtest = xgb.DMatrix(data = testFeats)
 
-xgbParams = list(max.depth=6, eta=0.1, gamma = 3, min_child_weight = 1, 
-                 max_delta_step = 0, subsample = 0.8, colsample_bytree = 0.8, silent=1, scale_pos_weight=2.902845)
+xgbParams = list(max.depth=6, eta=0.03, gamma = 3, min_child_weight = 1, missing = -666,
+                 max_delta_step = 1, subsample = 0.8, colsample_bytree = 0.8, silent=1)
 
 xgModel = xgb.train(params = xgbParams, data = dtrain, watchlist = list(train=dtrain, valid=dvalid), 
-                    nrounds = 1, objective = "binary:logistic", eval_metric="auc", verbose = 1)
+                    nrounds = 1, objective = "binary:logistic", eval_metric="logloss", verbose = 1)
 
 alreadyDone = 1
 
-for(i in c(50, 100, 200, 500, 1000, 2000)) {
+for(i in c(100, 200, 500, 1000, 2000)) {
   
   nMoreRounds = i - alreadyDone
   
@@ -588,12 +588,12 @@ for(i in c(50, 100, 200, 500, 1000, 2000)) {
   setinfo(dtrain, "base_margin", ptrain)
   setinfo(dvalid, "base_margin", pvalid)
   xgModel = xgb.train(params = xgbParams, data = dtrain, watchlist = list(train=dtrain, valid=dvalid), 
-                      nrounds = nMoreRounds, objective = "binary:logistic", eval_metric="auc", verbose = 1)
+                      nrounds = nMoreRounds, objective = "binary:logistic", eval_metric="logloss", verbose = 1)
   ## Predictions on the test set, and make submission
   
   predTest = predict(xgModel, dtest)
   predDF = data.frame(Id=1:length(predTest)+59999999, Predicted=predTest)
-  write.csv(predDF, paste("predictions_",i,"_hashed1024.csv", sep = ""), row.names=F)
+  write.csv(predDF, paste("predictions_",i,"_hashed2048.csv", sep = ""), row.names=F)
   saveRDS(xgModel, paste("model_",i,"_rounds.xgb", sep=""))
   
   # copy to s3 to save
@@ -601,9 +601,9 @@ for(i in c(50, 100, 200, 500, 1000, 2000)) {
 #          intern = F, ignore.stdout = T, ignore.stderr = T)
 #   system(command = paste("sudo aws s3 cp model_",i,"_rounds.xgb s3://kpayets3/", sep=""), 
 #          intern = F, ignore.stdout = T, ignore.stderr = T)
-  writeLines(c(paste("sudo aws s3 cp predictions_",i,"_hashed1024.csv s3://kpayets3/", sep=""),
+  writeLines(c(paste("sudo aws s3 cp predictions_",i,"_hashed2048.csv s3://kpayets3/", sep=""),
                paste("sudo aws s3 cp model_",i,"_rounds.xgb s3://kpayets3/", sep=""),
-               paste("sudo rm predictions_",i,"_hashed1024.csv", sep=""),
+               paste("sudo rm predictions_",i,"_hashed2048.csv", sep=""),
                paste("sudo rm model_",i,"_rounds.xgb", sep="")),
              con = "copyTos3", sep = "\n")
   
