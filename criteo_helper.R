@@ -10,7 +10,9 @@ MultiLogLoss <- function(act, pred)
 }
 
 require(xgboost)
-grid.Search <- function(valid, .md, .gamma, .minChildWeight, .nround, .subsample = c(1.), .colsample = c(1.), .maxDelta = 0, .posWeight = 1.) {
+# dvalid should: dvalid = xgb.DMatrix(data = valid$data, label = valid$label)
+#
+grid.Search <- function(dvalid, .md, .gamma, .minChildWeight, .nround, .subsample = c(1.), .colsample = c(1.), .maxDelta = 0, .posWeight = 1.) {
   
     cvList=list()
     i = 1
@@ -28,7 +30,7 @@ grid.Search <- function(valid, .md, .gamma, .minChildWeight, .nround, .subsample
                                              max_delta_step = .maxDelta, subsample = subsample, colsample_bytree = colsample, 
                                              silent=1, scale_pos_weight = .posWeight)
                             
-                            cvRes = xgb.cv(xgbParams, dtrainNA, nround, nfold = 10, 
+                            cvRes = xgb.cv(xgbParams, dvalid, nround, nfold = 10, 
                                           objective = 'binary:logistic', eval_metric = 'logloss',
                                           maximize = FALSE, early.stop.round = 5, showsd = F, verbose = F, missing = -666)
                             
