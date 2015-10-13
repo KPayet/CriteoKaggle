@@ -1,13 +1,4 @@
-MultiLogLoss <- function(act, pred)
-{
-    eps = 1e-15;
-    nr <- nrow(pred)
-    pred = matrix(sapply( pred, function(x) max(eps,x)), nrow = nr)      
-    pred = matrix(sapply( pred, function(x) min(1-eps,x)), nrow = nr)
-    ll = sum(act*log(pred) + (1-act)*log(1-pred))
-    ll = ll * -1/(nrow(act))      
-    return(ll);
-}
+source("criteo_helper.R")
 
 require(readr)
 
@@ -564,6 +555,9 @@ valid = readRDS("validListHashed2048.rds")
 
 dtrain = xgb.DMatrix(data = train$data, label = train$label)
 dvalid = xgb.DMatrix(data = valid$data, label = valid$label)
+
+# do cross validation using xgb.cv to find best parameters
+grid.Search(dvalid, .md = seq(4, 8, 2), .gamma = seq(1.5, 3.5, 0.5), .minChildWeight = c(1, 5, 10), .nround = c(100, 200, 500))
 
 testFeats = readRDS("testListHashed2048.rds")
 # testFeats = hashed.model.matrix(~ .-1, data = prepDataTest, hash.size = 2^11, transpose = F)
