@@ -6,6 +6,13 @@ rawDataTrain = read_delim("train.txt", delim="\t", col_names = F)
 rawDataTrain = rawDataTrain[sample(1:nrow(rawDataTrain), nrow(rawDataTrain), replace=F),]
 rawDataTest = read_delim("test.txt", delim="\t", col_names = F)
 
+require(caret)
+preproc = preProcess(rawDataTrain[,2:14])
+rawDataTrain[,2:14] = predict(preproc, rawDataTrain[,2:14])
+oldnames = names(rawDataTest)
+names(rawDataTest) = names(rawDataTrain)[2:40]
+rawDataTest[,1:13] = predict(preproc, rawDataTest[,1:13])
+
 #countNA = function(x) {N = table(is.na(x)); return(N);}
 
 #apply(X = data, MARGIN = 2, FUN = countNA)
