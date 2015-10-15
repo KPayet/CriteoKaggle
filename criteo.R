@@ -12,6 +12,7 @@ rawDataTrain[,2:14] = predict(preproc, rawDataTrain[,2:14])
 oldnames = names(rawDataTest)
 names(rawDataTest) = names(rawDataTrain)[2:40]
 rawDataTest[,1:13] = predict(preproc, rawDataTest[,1:13])
+names(rawDataTest) = oldnames
 
 #countNA = function(x) {N = table(is.na(x)); return(N);}
 
@@ -451,18 +452,18 @@ require(Matrix)
 
 for(i in 15:40) {
     
-    catFeat = prepDataTrain[,i]
-    topLevel = names(which.max(table(catFeat)))
-    prepDataTrain[,i][is.na(prepDataTrain[,i])] = rep(topLevel, length(prepDataTrain[,i][is.na(prepDataTrain[,i])]))
+#     catFeat = prepDataTrain[,i]
+#     topLevel = names(which.max(table(catFeat)))
+    prepDataTrain[,i][is.na(prepDataTrain[,i])] = rep(-666, length(prepDataTrain[,i][is.na(prepDataTrain[,i])]))
     print(i)
 }
 rm(list = c("i", "catFeat", "topLevel"))
 
 for(i in 14:39) {
   
-  catFeat = prepDataTest[,i]
-  topLevel = names(which.max(table(catFeat)))
-  prepDataTest[,i][is.na(prepDataTest[,i])] = rep(topLevel, length(prepDataTest[,i][is.na(prepDataTest[,i])]))
+#   catFeat = prepDataTest[,i]
+#   topLevel = names(which.max(table(catFeat)))
+  prepDataTest[,i][is.na(prepDataTest[,i])] = rep(-666, length(prepDataTest[,i][is.na(prepDataTest[,i])]))
   print(i)
 }
 rm(list = c("i", "catFeat", "topLevel"))
