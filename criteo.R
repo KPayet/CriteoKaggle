@@ -12,7 +12,7 @@ rawDataTrain[,2:14] = predict(preproc, rawDataTrain[,2:14])
 oldnames = names(rawDataTest)
 names(rawDataTest) = names(rawDataTrain)[2:40]
 rawDataTest[,1:13] = predict(preproc, rawDataTest[,1:13])
-names(rawDataTest) = oldnames
+# names(rawDataTest) = oldnames
 
 #countNA = function(x) {N = table(is.na(x)); return(N);}
 
@@ -349,8 +349,8 @@ rm(list = ls()[ls()!="rawDataTrain"])
 # The categorical features need to be converted from hexa to decimal integers, then we must one hot encode them.
 # This is going to make the number of features explode
 
-rawDataTrain[,2:14] = predict(preProcess(rawDataTrain[,2:14]), rawDataTrain[,2:14])
-rawDataTest[,1:13] = predict(preProcess(rawDataTest[,1:13]), rawDataTest[,1:13])
+# rawDataTrain[,2:14] = predict(preProcess(rawDataTrain[,2:14]), rawDataTrain[,2:14])
+# rawDataTest[,1:13] = predict(preProcess(rawDataTest[,1:13]), rawDataTest[,1:13])
 
 prepDataTrain = rawDataTrain
 
@@ -382,24 +382,28 @@ for(i in 1:13) {
 # that had empty string to -666.
 #. The features that have missing category are: 17, 18, 20, 26, 30, 33, 34, 35, 36 (81%), 38, 39, 40.
 
-missingDataTrainX17 = prepDataTrain$X17==""
-missingDataTrainX18 = prepDataTrain$X18==""
-missingDataTrainX20 = prepDataTrain$X20==""
-missingDataTrainX26 = prepDataTrain$X26==""
-missingDataTrainX30 = prepDataTrain$X30==""
-missingDataTrainX33 = prepDataTrain$X33==""
-missingDataTrainX34 = prepDataTrain$X34==""
-missingDataTrainX35 = prepDataTrain$X35==""
-missingDataTrainX36 = prepDataTrain$X36==""
-missingDataTrainX38 = prepDataTrain$X38==""
-missingDataTrainX39 = prepDataTrain$X39==""
-missingDataTrainX40 = prepDataTrain$X40==""
+# missingDataTrainX17 = prepDataTrain$X17==""
+# missingDataTrainX18 = prepDataTrain$X18==""
+# missingDataTrainX20 = prepDataTrain$X20==""
+# missingDataTrainX26 = prepDataTrain$X26==""
+# missingDataTrainX30 = prepDataTrain$X30==""
+# missingDataTrainX33 = prepDataTrain$X33==""
+# missingDataTrainX34 = prepDataTrain$X34==""
+# missingDataTrainX35 = prepDataTrain$X35==""
+# missingDataTrainX36 = prepDataTrain$X36==""
+# missingDataTrainX38 = prepDataTrain$X38==""
+# missingDataTrainX39 = prepDataTrain$X39==""
+# missingDataTrainX40 = prepDataTrain$X40==""
+
+trainLevelsForFeat = list()
 
 for(i in 15:40){
     testCatFeat = prepDataTrain[,i]
     testCatFeat = as.character(sapply(testCatFeat, FUN = function(x){paste("0x",x,sep="")}))
     testCatFeat = as.numeric(testCatFeat)
+    testCatFeat[is.na(testCatFeat)] = -666
     testCatFeat = as.factor(testCatFeat)
+    trainLevelsForFeat[[i]] = levels(testCatFeat)
     prepDataTrain[,i] = testCatFeat
     print(i)
 }
@@ -409,6 +413,8 @@ for(i in 14:39){
   testCatFeat = prepDataTest[,i]
   testCatFeat = as.character(sapply(testCatFeat, FUN = function(x){paste("0x",x,sep="")}))
   testCatFeat = as.numeric(testCatFeat)
+  testCatFeat[is.na(testCatFeat)] = -666
+  testCatFeat[ !( testCatFeat %in% trainLevelsForFeat[[i + 1]] ) ] = -666
   testCatFeat = as.factor(testCatFeat)
   prepDataTest[,i] = testCatFeat
   print(i)
@@ -450,23 +456,23 @@ require(Matrix)
 #### Mais ce n'est pas possible de ne pas se soucier des NA, parce que ?a nous fait perdre ~ 90% des observations.
 #### Donc, je fais avec le mode imputation.
 
-for(i in 15:40) {
-    
-#     catFeat = prepDataTrain[,i]
-#     topLevel = names(which.max(table(catFeat)))
-    prepDataTrain[,i][is.na(prepDataTrain[,i])] = rep(-666, length(prepDataTrain[,i][is.na(prepDataTrain[,i])]))
-    print(i)
-}
-rm(list = c("i", "catFeat", "topLevel"))
-
-for(i in 14:39) {
-  
-#   catFeat = prepDataTest[,i]
-#   topLevel = names(which.max(table(catFeat)))
-  prepDataTest[,i][is.na(prepDataTest[,i])] = rep(-666, length(prepDataTest[,i][is.na(prepDataTest[,i])]))
-  print(i)
-}
-rm(list = c("i", "catFeat", "topLevel"))
+# for(i in 15:40) {
+#     
+# #     catFeat = prepDataTrain[,i]
+# #     topLevel = names(which.max(table(catFeat)))
+#     prepDataTrain[,i][is.na(prepDataTrain[,i])] = rep(-666, length(prepDataTrain[,i][is.na(prepDataTrain[,i])]))
+#     print(i)
+# }
+# rm(list = c("i", "catFeat", "topLevel"))
+# 
+# for(i in 14:39) {
+#   
+# #   catFeat = prepDataTest[,i]
+# #   topLevel = names(which.max(table(catFeat)))
+#   prepDataTest[,i][is.na(prepDataTest[,i])] = rep(-666, length(prepDataTest[,i][is.na(prepDataTest[,i])]))
+#   print(i)
+# }
+# rm(list = c("i", "catFeat", "topLevel"))
 
 require(xgboost)
 require(caTools)
