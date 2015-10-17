@@ -553,30 +553,32 @@ write.csv(predDF, "predictions_1.csv", row.names=F)
 # Essai de Featurehashing
 require(FeatureHashing)
 require(xgboost)
+require(caTools)
 
 split = sample.split(prepDataTrain$X1, SplitRatio = 0.97)
 
 train = prepDataTrain[split,]
-trainHashFeats = hashed.model.matrix(~ .-1, data = train[,2:40], hash.size = 2^10, transpose = F)
+trainHashFeats = hashed.model.matrix(~ .-1, data = train[,2:40], hash.size = 2^11, transpose = F)
 train = list(data = trainHashFeats, label = train$X1)
 valid = prepDataTrain[!split,]
 validHashFeats = hashed.model.matrix(~ .-1, data = valid[,2:40], hash.size = 2^11, transpose = F)
 valid = list(data = validHashFeats, label = valid$X1)
 
-# saveRDS(train, "trainListHashed2048.rds")
-train = readRDS("trainListHashed2048.rds")
-valid = readRDS("validListHashed2048.rds")
+saveRDS(train, "trainListHashed2048.rds")
+saveRDS(valid, "validListHashed2048.rds")
+# train = readRDS("trainListHashed2048.rds")
+# valid = readRDS("validListHashed2048.rds")
 
-dtrain = xgb.DMatrix(data = train$data, label = train$label)
-dvalid = xgb.DMatrix(data = valid$data, label = valid$label)
+# dtrain = xgb.DMatrix(data = train$data, label = train$label)
+# dvalid = xgb.DMatrix(data = valid$data, label = valid$label)
 
 # do cross validation using xgb.cv to find best parameters
 grid.Search(dvalid, .md = seq(4, 8, 2), .gamma = seq(1.5, 3.5, 0.5), .minChildWeight = c(1, 5, 10), .nround = c(100, 200, 500))
 
-testFeats = readRDS("testListHashed2048.rds")
-# testFeats = hashed.model.matrix(~ .-1, data = prepDataTest, hash.size = 2^11, transpose = F)
-# saveRDS(testFeats, "testListHashed2048.rds")
-dtest = xgb.DMatrix(data = testFeats)
+# testFeats = readRDS("testListHashed2048.rds")
+testFeats = hashed.model.matrix(~ .-1, data = prepDataTest, hash.size = 2^11, transpose = F)
+saveRDS(testFeats, "testListHashed2048.rds")
+# dtest = xgb.DMatrix(data = testFeats)
 
 xgbParams = list(max.depth=6, eta=0.03, gamma = 3, min_child_weight = 1, missing = -666,
                  max_delta_step = 1, subsample = 0.8, colsample_bytree = 0.8, silent=1)
