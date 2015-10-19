@@ -564,13 +564,13 @@ valid = prepDataTrain[!split,]
 validHashFeats = hashed.model.matrix(~ .-1, data = valid[,2:40], hash.size = 2^11, transpose = F)
 valid = list(data = validHashFeats, label = valid$X1)
 
-saveRDS(train, "trainListHashed2048.rds")
-saveRDS(valid, "validListHashed2048.rds")
+# saveRDS(train, "trainListHashed2048.rds")
+# saveRDS(valid, "validListHashed2048.rds")
 # train = readRDS("trainListHashed2048.rds")
-# valid = readRDS("validListHashed2048.rds")
+valid = readRDS("validListHashed2048.rds")
 
 # dtrain = xgb.DMatrix(data = train$data, label = train$label)
-# dvalid = xgb.DMatrix(data = valid$data, label = valid$label)
+dvalid = xgb.DMatrix(data = valid$data, label = valid$label)
 
 # do cross validation using xgb.cv to find best parameters
 grid.Search(dvalid, .md = seq(4, 8, 2), .gamma = seq(1.5, 3.5, 0.5), 
