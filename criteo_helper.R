@@ -10,7 +10,7 @@ MultiLogLoss <- function(act, pred)
 }
 
 require(xgboost)
-# dvalid should: dvalid = xgb.DMatrix(data = valid$data, label = valid$label)
+# dvalid should be: dvalid = xgb.DMatrix(data = valid$data, label = valid$label)
 #
 grid.Search <- function(dvalid, .md, .gamma, .minChildWeight, .nround, .subsample = c(1.), 
                         .colsample = c(1.), .maxDelta = 0, .posWeight = 1., nFolds = 10) {
@@ -45,10 +45,13 @@ grid.Search <- function(dvalid, .md, .gamma, .minChildWeight, .nround, .subsampl
                             i = i+1
                         }
                     }
-                }
-            }
-        }
-    }
+                }	# loop on nrounds
+            }	# loop on min_child_weight
+        }	# loop on gamma
+    } # loop md
+	
+  cvDF = do.call(rbind, cvList)
   
+  return(cvDF)
 }
 
