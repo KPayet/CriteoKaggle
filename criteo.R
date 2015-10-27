@@ -32,22 +32,23 @@ trainLevelsForFeat = list()
 # train set
 for(i in 15:40){
     testCatFeat = prepDataTrain[,i]
-    testCatFeat = as.character(sapply(testCatFeat, FUN = function(x){paste("0x",x,sep="")}))
-    testCatFeat = as.numeric(testCatFeat)
-    testCatFeat[is.na(testCatFeat)] = -666
-    testCatFeat = as.factor(testCatFeat)
+    # testCatFeat = as.character(sapply(testCatFeat, FUN = function(x){paste("0x",x,sep="")}))
+    # testCatFeat = as.numeric(testCatFeat)
+    # testCatFeat[testCatFeat = ""] = -666
+    # testCatFeat = as.factor(testCatFeat)
     trainLevelsForFeat[[i]] = levels(testCatFeat) # record which levels are in the train set
-    prepDataTrain[,i] = testCatFeat
+    # prepDataTrain[,i] = testCatFeat
     print(i)
 }
 rm(list = c("testCatFeat", "i"))
 
 for(i in 14:39){
   testCatFeat = prepDataTest[,i]
-  testCatFeat = as.character(sapply(testCatFeat, FUN = function(x){paste("0x",x,sep="")}))
-  testCatFeat = as.numeric(testCatFeat)
-  testCatFeat[is.na(testCatFeat)] = -666
-  testCatFeat[ !( testCatFeat %in% trainLevelsForFeat[[i + 1]] ) ] = -666 # set levels that were not in the train set to missing
+  # testCatFeat = as.character(sapply(testCatFeat, FUN = function(x){paste("0x",x,sep="")}))
+  # testCatFeat = as.numeric(testCatFeat)
+  # testCatFeat[testCatFeat = ""] = -666
+  if(!( "" %in% levels(testCatFeat) )) { levels(testCatFeat) = c(levels(testCatFeat), "") }
+  testCatFeat[ !( testCatFeat %in% trainLevelsForFeat[[i + 1]] ) ] = "" # set levels that were not in the train set to missing
   testCatFeat = as.factor(testCatFeat)
   prepDataTest[,i] = testCatFeat
   print(i)
