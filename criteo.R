@@ -147,23 +147,23 @@ rm(list = c("trainHashFeats", "validHashFeats"))
 
 # saveRDS(train, "trainListHashed2048.rds")
 # saveRDS(valid, "validListHashed2048.rds")
-# train = readRDS("trainListHashed2048.rds")
-# valid = readRDS("validListHashed2048.rds")
+train = readRDS("trainListHashed2048_2.rds")
+valid = readRDS("validListHashed2048_2.rds")
 
-dtrain = xgb.DMatrix(data = train$data, label = train$label)
+dtrain = xgb.DMatrix(data = train$data[1:1000000,], label = train$label[1:1000000])
 dvalid = xgb.DMatrix(data = valid$data, label = valid$label)
 
 # do cross validation using xgb.cv to find best parameters
-cvResults = grid.Search(dvalid, .md = seq(6, 14, 2), .gamma = seq(1.5, 9.5, 0.5), 
-								.minChildWeight = c(1, 5, 10), .nround = c(100, 200, 500, 1000),
-								nFolds = 5)
+# cvResults = grid.Search(dvalid, .md = seq(6, 14, 2), .gamma = seq(1.5, 9.5, 0.5), 
+# 								.minChildWeight = c(1, 5, 10), .nround = c(100, 200, 500, 1000),
+# 								nFolds = 5)
 
-# testFeats = readRDS("testListHashed2048.rds")
-testFeats = hashed.model.matrix(~ .-1, data = test, hash.size = 2^16, transpose = F)
+testFeats = readRDS("testListHashed2048_2.rds")
+# testFeats = hashed.model.matrix(~ .-1, data = test, hash.size = 2^16, transpose = F)
 # saveRDS(testFeats, "testListHashed2048.rds")
 dtest = xgb.DMatrix(data = testFeats)
 
-xgbParams = list(max.depth=12, eta=0.1, gamma = 7.5, min_child_weight = 5, missing = -666,
+xgbParams = list(max.depth=12, eta=0.1, gamma = 10, min_child_weight = 5, missing = -666,
                  max_delta_step = 1, subsample = 1, colsample_bytree = 1, silent=1)
 
 
@@ -177,7 +177,7 @@ alreadyDone = 1
 # The loop below simply saves the model every 100 rounds
 # This is simply because I trained on AWS using spot request, 
 # and didn't want the training to be wasted if the spot was closed 
-for(i in c(seq(100, 1000, 100), 2000)) {
+for(i in c(seq(50, 100, 50))) {
   
   nMoreRounds = i - alreadyDone
   
@@ -193,17 +193,13 @@ for(i in c(seq(100, 1000, 100), 2000)) {
   # Predictions on the test set, and make submission file
   predTest = predict(xgModel, dtest)
   predDF = data.frame(Id=1:length(predTest)+59999999, Predicted=predTest) # format required by Kaggle for submission
-  write.csv(predDF, paste("predictions_",i,"_hashed2048.csv", sep = ""), row.names=F)
+  write.csv(predDF, paste("predictions_",i,"_hashed65k.csv", sep = ""), row.names=F)
   saveRDS(xgModel, paste("model_",i,"_rounds.xgb", sep=""))
   
   # copy to s3 to save
-#   system(command = paste("sudo aws s3 cp predictions_",i,"_hashed1024.csv s3://kpayets3/", sep=""), 
-#          intern = F, ignore.stdout = T, ignore.stderr = T)
-#   system(command = paste("sudo aws s3 cp model_",i,"_rounds.xgb s3://kpayets3/", sep=""), 
-#          intern = F, ignore.stdout = T, ignore.stderr = T)
-  writeLines(c(paste("sudo aws s3 cp predictions_",i,"_hashed2048.csv s3://kpayets3/", sep=""),
+  writeLines(c(paste("sudo aws s3 cp predictions_",i,"_hashed65k.csv s3://kpayets3/", sep=""),
                paste("sudo aws s3 cp model_",i,"_rounds.xgb s3://kpayets3/", sep=""),
-               paste("sudo rm predictions_",i,"_hashed2048.csv", sep=""),
+               paste("sudo rm predictions_",i,"_hashed65k.csv", sep=""),
                paste("sudo rm model_",i,"_rounds.xgb", sep="")),
              con = "copyTos3", sep = "\n")
   
