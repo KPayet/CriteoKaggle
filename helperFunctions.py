@@ -7,6 +7,7 @@ Function used to one-hot encode categorical features of the dataset
 i.e. turn the categorical features into binary features (K binary features for a K-level nominal feature)
 The produced encoding is stored in a SparseVector for space efficiency
 """
+from pyspark.mllib.linalg import SparseVector
 def oneHotEncode(features, featDict, numFeatures):
 
     N = [];
@@ -16,7 +17,7 @@ def oneHotEncode(features, featDict, numFeatures):
             N.append(featDict[feat])
     N = sorted(N)
 
-    return SparseVector(numOHEFeats, N, [1.]*len(N))
+    return SparseVector(numFeatures, N, [1.]*len(N))
 
 
 """
@@ -101,7 +102,7 @@ Computes the log loss on the a data set to evaluate the model
 
 def evaluateModel(model, data):
 
-    logLoss = (data.map(lambda p: (p.label, getCTRProb(p.features, model0.weights, model0.intercept)))
+    logLoss = (data.map(lambda p: (p.label, getCTRProb(p.features, model.weights, model.intercept)))
                  .map(lambda p: computeLogLoss(p[1],p[0]))
                  .reduce(lambda a,b: a+b))/data.count()
 

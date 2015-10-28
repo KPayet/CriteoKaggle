@@ -62,10 +62,10 @@ validLogLossModel0 = evaluateModel(model0, OHEValidationData)
 
 # Predict on the test set
 
-testPredictions = (testOHE.map(lambda p: (p.label, getCTRProb(p.features, bestModel.weights, bestModel.intercept))) # in test label is simply observation Id, needed for Kaggle submission.
-                          .map(lambda t: str(t[0]) + "," + str(t[1]))
+testPredictions = (testOHE.map(lambda p: (p.label, getCTRProb(p.features, model0.weights, model0.intercept))) # in test label is simply observation Id, needed for Kaggle submission.
+                          .map(lambda t: str(int(t[0])) + "," + str(t[1]))
                           .coalesce(1)
-                          .saveAsTextFile("predictions.csv"))
+                          .saveAsTextFile("./predictions.csv"))
 
 
  # Using feature hashing instead of OHE
@@ -87,29 +87,24 @@ regParams = [0.000001, 0.0001, 0.001, 0.01]
 
 for stepSize in stepSizes:
     for regParam in regParams:
-
-        model = (LogisticRegressionWithSGD
-                 .train(hashedTrainData, 500, stepSize, regParam=regParam, regType='l2',
-                        intercept=True))
-
-        logLossVa =  (hashedValidationData.map(lambda p: (p.label, getCTRProb(p.features, model.weights, model.intercept)))
-                                 .map(lambda p: computeLogLoss(p[1], p[0]))
-                                 .reduce(lambda a,b: a+b))/hashedValidationData.count()
-
+        model = LogisticRegressionWithSGD.train(hashedTrainData, 500, stepSize, regParam=regParam, regType='l2', intercept=True)
+        logLossVa = (hashedValidationData.map(lambda p: (p.label, getCTRProb(p.features, model.weights, model.intercept)))
+                                         .map(lambda p: computeLogLoss(p[1], p[0]))
+                                         .reduce(lambda a,b: a+b))/hashedValidationData.count()
 #        logLossVa = evaluateModel(model, hashedValidationData)
-
         if (logLossVa < bestLogLoss):
             bestModel = model
             bestLogLoss = logLossVa
+
 
 # predict on test set
 
 testHashed = rawTestSet.map(lambda point: createHashedPoint(point, 2**15))
 
 testPredictions = (testHashed.map(lambda p: (p.label, getCTRProb(p.features, bestModel.weights, bestModel.intercept))) # in test label is simply observation Id, needed for Kaggle submission.
-                             .map(lambda t: str(t[0]) + "," + str(t[1]))
+                             .map(lambda t: str(int(t[0])) + "," + str(t[1]))
                              .coalesce(1)
-                             .saveAsTextFile("predictions.csv"))
+                             .saveAsTextFile("predictions_2.csv"))
 
 
 
