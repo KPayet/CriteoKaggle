@@ -114,7 +114,7 @@ Hash function used for the feature hashing trick
 from collections import defaultdict
 import hashlib
 
-def hashThis(nBuckets = 2**16, features):
+def hashThis(nBuckets = 2**16, features = None):
 
     mapping = {}
 
