@@ -87,6 +87,8 @@ bestLogLoss = float("inf")
 stepSizes = [1, 5, 10, 20]
 regParams = [0.000001, 0.0001, 0.001, 0.01]
 
+from pyspark.mllib.regression import LogisticRegressionWithSGD
+
 for stepSize in stepSizes:
     for regParam in regParams:
         model = LogisticRegressionWithSGD.train(hashedTrainData, 500, stepSize, regParam=regParam, regType='l2', intercept=True)
