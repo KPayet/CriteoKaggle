@@ -79,9 +79,13 @@ The problem with this approach is that, combined together, the 26 categorical fe
 <li><p>All features levels in the test set that were not also in the train set, are reencoded as "" (empty string), i.e. as a missing value. One other way to do it would be to replace these values with the mode (level that appears the most) of each feature. But, it doesn't improve performance, and can even introduce an annoying bias.</p></li>
 </ul>
 
+<img src="img/R_2.PNG"/>
+
 <p>To encode the categorical feature, we can use the sparse.model.matrix function from the Matrix package. It does a good job for the sample, however, for the full train set, the amount of memory to perform such operation in R is extremely high.<br/>I decided to do it anyway, out of curiosity, and it could be achieved only by using a r3.4xlarge machine on AWS, i.e. 122 GB of RAM. </p>
 
-<p>Another method for encoding these variables, is to use Feature Hashing (aka the hashing trick). According to <a href="https://en.wikipedia.org/wiki/Feature_hashing">wikipedia</a>, it is "is a fast and space-efficient way of vectorizing features, i.e. turning arbitrary features into indices in a vector or matrix. It works by applying a hash function to the features and using their hash values as indices directly, rather than looking the indices up in an associative array." This method allows to featurize our data more quickly, and by using a smaller amount of memory. It is implemented into the hashed.model.matrix from the FeatureHashing package.</p>
+<pre><code>trainFeats = sparse.model.matrix(~ .-1, data = train[,2:40])</code></pre>
+
+<p>Another method for encoding these variables, is to use <strong>Feature Hashing</strong> (aka the hashing trick). According to <a href="https://en.wikipedia.org/wiki/Feature_hashing">wikipedia</a>, it is "is a fast and space-efficient way of vectorizing features, i.e. turning arbitrary features into indices in a vector or matrix. It works by applying a hash function to the features and using their hash values as indices directly, rather than looking the indices up in an associative array." This method allows to featurize our data more quickly, and by using a smaller amount of memory. It is implemented into the hashed.model.matrix from the FeatureHashing package.</p>
 
 <pre><code>trainHashFeats = hashed.model.matrix(~ .-1, data = train[,2:40], hash.size = 2^16, transpose = F)
 </code></pre>
@@ -188,12 +192,12 @@ testPredictions = (testHashed.map(lambda p: (p.label, getCTRProb(p.features, bes
                              .saveAsTextFile("predictions.csv"))
 </code></pre>
 
-<p>I submitted the output created this way to Kaggle and got a score of 0.4630, right in the top 20%. </p> 
+<p>I submitted the output created this way to Kaggle and got a score of 0.46360, right in the top 20%. </p> 
 
 <img src="img/spark_submission.PNG">
 
 <p>The training procedure here is quite simple, apart from the grid search, so it is even a bit surprising that a simple logistic regression could beat the benchmark (logistic regression too!) by such a margin. But, it could simply come from their implementation. </p>
-<p>There is still a lot that could be done to improve this model. Further parameter optimization, and more training. I could also introduce quadratic features, for the categorical and integer features. it is quite easy to do se with pyspark (using itertools package). <br/>I know that the some of the top entries in the competition did it, and it resulted in good improvement of the overall predictive power of their model. </p>
+<p>There is still a lot that could be done to improve this model. Further parameter optimization, and more training. I could also introduce quadratic features, for the categorical and integer features. it is quite easy to do se with pyspark (using itertools package). <br/>I know that some of the top entries in the competition did it, and it resulted in good improvement of the overall predictive power of their model. </p>
 
       <footer class="site-footer">
         <span class="site-footer-owner"><a href="https://github.com/KPayet/CriteoKaggle">CriteoKaggle</a> is maintained by <a href="https://github.com/KPayet">KPayet</a>.</span>
