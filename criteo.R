@@ -44,43 +44,32 @@ trainLevelsForFeat = list()
 
 # train set
 for(i in 15:40){
-    testCatFeat = train[,i]
-    # testCatFeat = as.character(sapply(testCatFeat, FUN = function(x){paste("0x",x,sep="")}))
-    # testCatFeat = as.numeric(testCatFeat)
-    # testCatFeat[testCatFeat = ""] = -666
-    # testCatFeat = as.factor(testCatFeat)
-	if(!( "" %in% levels(testCatFeat) )) { levels(testCatFeat) = c(levels(testCatFeat), "") }
-    trainLevelsForFeat[[i]] = levels(testCatFeat) # record which levels are in the train set
-    # train[,i] = testCatFeat
+    tmp = train[,i]
+	if(!( "" %in% levels(tmp) )) { levels(tmp) = c(levels(tmp), "") }
+    trainLevelsForFeat[[i]] = levels(tmp) # record which levels are in the train set
     print(i)
 }
-rm(list = c("testCatFeat", "i"))
+rm(list = c("tmp", "i"))
 
 for(i in 15:40){
-  testCatFeat = valid[,i]
-  # testCatFeat = as.character(sapply(testCatFeat, FUN = function(x){paste("0x",x,sep="")}))
-  # testCatFeat = as.numeric(testCatFeat)
-  # testCatFeat[testCatFeat = ""] = -666
-  if(!( "" %in% levels(testCatFeat) )) { levels(testCatFeat) = c(levels(testCatFeat), "") }
-  testCatFeat[ !( testCatFeat %in% trainLevelsForFeat[[i]] ) ] = "" # set levels that were not in the train set to missing
-  testCatFeat = as.factor(testCatFeat)
-  valid[, i] = testCatFeat
+  tmp = valid[,i]
+  if(!( "" %in% levels(tmp) )) { levels(tmp) = c(levels(tmp), "") }
+  tmp[ !( tmp %in% trainLevelsForFeat[[i]] ) ] = "" # set levels that were not in the train set to missing
+  tmp = as.factor(tmp)
+  valid[, i] = tmp
   print(i)
 }
-rm(list = c("testCatFeat", "i"))
+rm(list = c("tmp", "i"))
 
 for(i in 14:39){
-  testCatFeat = test[,i]
-  # testCatFeat = as.character(sapply(testCatFeat, FUN = function(x){paste("0x",x,sep="")}))
-  # testCatFeat = as.numeric(testCatFeat)
-  # testCatFeat[testCatFeat = ""] = -666
-  if(!( "" %in% levels(testCatFeat) )) { levels(testCatFeat) = c(levels(testCatFeat), "") }
-  testCatFeat[ !( testCatFeat %in% trainLevelsForFeat[[i + 1]] ) ] = "" # set levels that were not in the train set to missing
-  testCatFeat = as.factor(testCatFeat)
-  test[, i] = testCatFeat
+  tmp = test[,i]
+  if(!( "" %in% levels(tmp) )) { levels(tmp) = c(levels(tmp), "") }
+  tmp[ !( tmp %in% trainLevelsForFeat[[i + 1]] ) ] = "" # set levels that were not in the train set to missing
+  tmp = as.factor(tmp)
+  test[, i] = tmp
   print(i)
 }
-rm(list = c("testCatFeat", "i"))
+rm(list = c("tmp", "i"))
 
 # one hot encoding method, using sparse.model.matrix
 # I used it before moving to the hashing trick
