@@ -22,19 +22,21 @@
       <h1>
 <a id="criteo-ctr-prediction" class="anchor" href="#criteo-ctr-prediction" aria-hidden="true"><span class="octicon octicon-link"></span></a>Criteo CTR prediction</h1>
 
-<p>Kevin Payet<br>
-29 octobre 2015  </p>
+<p>Kevin Payet - 29 octobre 2015  </p>
 
 <p>This page describes my work on the Criteo challenge hosted on Kaggle more than a year ago. This is an interesting data set, that can be tricky to deal with because of the memory footprint; which is the first reason why I decided to work on it. The following explain how I approached this problem.</p>
 
-<p>The goal of this challenge was to produce a ML model for predicting Click-Through-Rate (CTR), using a bunch of features provided by Criteo. For more details on the challenge, see the <a href="https://www.kaggle.com/c/criteo-display-ad-challenge">Kaggle page</a>. Even though the challenge closed more than a year ago, Criteo keeps the data available <a href="http://labs.criteo.com/downloads/2014-kaggle-display-advertising-challenge-dataset/">here</a>. Note that criteo released a new dataset for CTR prediction, the <a href="http://labs.criteo.com/downloads/download-terabyte-click-logs/">Terabyte Click Logs</a>, that is similar to the previous one, only far bigger (over 4 billion lines, and over 1TB). In the near future, I might update this page with the new data.</p>
+<p>The goal of this challenge was to produce a ML model for predicting Click-Through-Rate (CTR), using a bunch of features provided by Criteo. For more details on the challenge, see the <a href="https://www.kaggle.com/c/criteo-display-ad-challenge">Kaggle page</a>. <br/>
+Even though the challenge closed more than a year ago, Criteo keeps the data available <a href="http://labs.criteo.com/downloads/2014-kaggle-display-advertising-challenge-dataset/">here</a>. <br/>
+Note that criteo released a new dataset for CTR prediction, the <a href="http://labs.criteo.com/downloads/download-terabyte-click-logs/">Terabyte Click Logs</a>, that is similar to the previous one, only far bigger (over 4 billion lines, and over 1TB). In the near future, I might update this page with the new data.</p>
 
 <p>The data page allows one to download the full data set, or the sample one. The sample archive (dac_sample.tar.gz) contains the "dac_sample.txt" file, with 100K observations. The full dataset contains the "train.txt" and "test.txt" files (~11GB and 1.4GB respectively when uncompressed). The train file contains 45M+ observations, with 39 features + 1 label. The test file contains only the features, and the evaluation of ones predictions are meant to be computed by the Kaggle system.</p>
 
 <p>Before the full training, I started exploring the dataset with R, to decide how it should be processed ...</p>
 
 <h2>
-<a id="data-exploration-in-r" class="anchor" href="#data-exploration-in-r" aria-hidden="true"><span class="octicon octicon-link"></span></a>Data exploration in R</h2>
+<a id="data-exploration-in-r" class="anchor" href="#data-exploration-in-r" aria-hidden="true"><span class="octicon octicon-link"></span></a>Data exploration in R
+</h2>
 
 <p>The scripts that go with the explanation given here can be found in the github repository linked above: criteo.R and criteo_helper.R.</p>
 
@@ -49,32 +51,37 @@ head(train)
 
 <p><img src="img/head_train.PNG" alt=""></p>
 
-<p>We see above what the data looks like. The first column is the label for the given observation, with 0 for not-clicked and 1 for clicked. The data has 13 integer features, and 26 categorical features, that have been hashed onto 32 bits for anonymization purposes. An empty field means that the corresponding value is missing.</p>
+<p>We see above what the data looks like. <br/> The first column is the label for the given observation, with 0 for not-clicked and 1 for clicked. The data has 13 integer features, and 26 categorical features, that have been hashed onto 32 bits for anonymization purposes. An empty field means that the corresponding value is missing.</p>
 
-<p>The first thing to do is to shuffle the train set, to lose any time ordering that may be present in the dataset. If you want to split the data into train and validation set, this is also the point here you should do it (see R script). </p>
+<p>The first thing to do is to shuffle the train set, to lose any ordering that may be present in the dataset. If you want to split the data into train and validation set, this is also the point here you should do it (see R script). </p>
 
-<p>The features then needs to be processed for training. There are a lot of procedures to so, but here I use a quite simple/standard one:</p>
+<p>The features then needs to be processed for training. There are a lot of procedures to do so, but here I use a quite simple/standard one:</p>
 
 <h3>
 <a id="integer-features" class="anchor" href="#integer-features" aria-hidden="true"><span class="octicon octicon-link"></span></a>Integer features:</h3>
 
-<p>Features 2 to 14 are scaled using preProces function from caret package. The scaling found is then applied to the train, validation and test sets. It is very important to scale the validation and test sets with the same values computed from the train set, otherwise you get something biased. I then simply replace NA (missing) values with the flag -666. I did this because I was thinking of using xgboost, that is designed to deal automatically with missing values, with the missing flag (here, missing = -666).</p>
+<p>Features 2 to 14 are scaled using preProces function from caret package. The scaling found is then applied to the train, validation and test sets. It is very important to scale the validation and test sets with the same values computed from the train set, otherwise you get something biased. <br/>
+I then simply replace NA (missing) values with the flag -666. I did this because I was thinking of using xgboost, that is designed to deal automatically with missing values, by setting the missing flag (here, missing = -666).</p>
+
+<img src="img/R_1.PNG"/>
 
 <h3>
 <a id="categorical-features" class="anchor" href="#categorical-features" aria-hidden="true"><span class="octicon octicon-link"></span></a>Categorical features:</h3>
 
-<p>These features are what made this competition the most challenging. The problem is that in order to train a model, we need to encode the categorical features, and the usual way to do it is to use one-hot encoding, where each categorical feature is turned into a number of binary variables (e.g. a feature with 10 levels is encoded as 9 binary variables, where only one of these new features is equal to 1 at a time, the others being 0). The problem with this approach is that combined, the 26 features have more than 250K features, which is pretty big, and makes would result in a ~ 40 TB matrix... But since the matrix is mostly, the problem with the size of the matrix can be alleviated by the use of a sparse matrix format (where only non-zero entries are stored). However, the computation of such matrix can still be quite challenging in terms of memory.</p>
+<p>These features are what made this competition the most challenging. <br/>
+The problem is that in order to train a model, we need to encode the categorical features, and the usual way to do it is to use one-hot encoding, where each categorical feature is turned into a number of binary variables (e.g. a feature with 10 levels is encoded as 9 binary variables, where only one of these new features is equal to 1 at a time, the others being 0). <br/>
+The problem with this approach is that, combined together, the 26 categorical features have more than 250K features, which is pretty big, and would result in a ~ 40 TB matrix... But since the matrix is mostly 0, the problem with its size can be alleviated by the use of a sparse matrix format (where only non-zero entries are stored). However, the computation of such matrix can still be quite challenging in terms of memory.</p>
 
 <p>The second aspect to deal with is that in the test set, we quickly see that there are levels that did not appear in the train set. So, one should also decide of a way to deal with it. In my case, what I did is simply:</p>
 
 <ul>
 <li><p>Record all observed levels, for each features, in the train set</p></li>
-<li><p>All features levels in the test set that were not also in the train set, are reencoded as "" (empty string), i.e. as a missing value. One other way to do it is to replace these values with the mode (level that appears the most) of each feature. But, it doesn't improve performance, and can even introduce an annoying bias.</p></li>
+<li><p>All features levels in the test set that were not also in the train set, are reencoded as "" (empty string), i.e. as a missing value. One other way to do it would be to replace these values with the mode (level that appears the most) of each feature. But, it doesn't improve performance, and can even introduce an annoying bias.</p></li>
 </ul>
 
-<p>To encode the categorical feature, we can use the sparse.model.matrix function from the Matrix package. It does a good job for the sample, however, for the full train set, the amount of memory to perform such operation in R is extremely high. I decided to do it anyway, out of curiosity, and it could be achieved only by using a r3.4xlarge machine on AWS, i.e. 122 GB of RAM. </p>
+<p>To encode the categorical feature, we can use the sparse.model.matrix function from the Matrix package. It does a good job for the sample, however, for the full train set, the amount of memory to perform such operation in R is extremely high.<br/>I decided to do it anyway, out of curiosity, and it could be achieved only by using a r3.4xlarge machine on AWS, i.e. 122 GB of RAM. </p>
 
-<p>Another method for encoding these variables, is to use the Feature Hashing (aka the hashing trick). According to <a href="https://en.wikipedia.org/wiki/Feature_hashing">wikipedia</a>, it is "is a fast and space-efficient way of vectorizing features, i.e. turning arbitrary features into indices in a vector or matrix. It works by applying a hash function to the features and using their hash values as indices directly, rather than looking the indices up in an associative array." This method allows to featurize our data more quickly, and by using a smaller amount of memory. It is implemented into the hashed.model.matrix from the FeatureHashing package.</p>
+<p>Another method for encoding these variables, is to use Feature Hashing (aka the hashing trick). According to <a href="https://en.wikipedia.org/wiki/Feature_hashing">wikipedia</a>, it is "is a fast and space-efficient way of vectorizing features, i.e. turning arbitrary features into indices in a vector or matrix. It works by applying a hash function to the features and using their hash values as indices directly, rather than looking the indices up in an associative array." This method allows to featurize our data more quickly, and by using a smaller amount of memory. It is implemented into the hashed.model.matrix from the FeatureHashing package.</p>
 
 <pre><code>trainHashFeats = hashed.model.matrix(~ .-1, data = train[,2:40], hash.size = 2^16, transpose = F)
 </code></pre>
@@ -95,20 +102,26 @@ xgModel = xgb.train(params = xgbParams, data = dtrain, watchlist = list(train=dt
                     nrounds = 1, objective = "binary:logistic", eval_metric="logloss", verbose = 1)
 </code></pre>
 
-<p>The way the training is done in the script (training for 1 round, then 50 more and saving, then 50 more, and so on.) is simply because I trained on AWs, using spot instances, that can be shutdown at any time. So, in case that happened, I didn't want to lose everything I did.</p>
+<p>The way the training is done in the script (training for 1 round, then 50 more and saving, then 50 more, and so on.) is simply because I trained on AWS, using spot instances, that can be shutdown at any time. So, in case that happened, I didn't want to lose everything I did.</p>
 
-<p>The training with R was mainly for fun, to see what working or not. However, when we have to deal with such a dataset that can be tricky if one doesn't have 100 GB of RAM, it's the use of Hadoop that comes to mind. In the following, I will present pretty much the same than what I did here, but using Spark this time.</p>
+A simple model trained this way, with nrounds = 1000 (so, 1000 trees), yields a score of 0.47631 on Kaggle's test set:
+
+<img src="img/R_submission.PNG"/>
+
+We beat the benchmark submission, but the result is far from amazing. However, I just trained this model to see what could be achieved in R. There is far more that could be done, starting by doing a better hyperparameters optimization, and more training. However, I didn't try to follow through, because I had to train on r3.2xlarge marchines on AWS, and that could have become expensive pretty quickly.
+
+<p>The training with R was mainly for fun. However, when we have to deal with such a dataset that can be tricky if one doesn't have 100 GB of RAM, it's the use of Hadoop that comes to mind. In the following, I will present pretty much the same than what I did here, but using Spark this time.</p>
 
 <h2>
 <a id="logistic-regression-with-spark" class="anchor" href="#logistic-regression-with-spark" aria-hidden="true"><span class="octicon octicon-link"></span></a>Logistic regression with Spark</h2>
 
-<p>Hadoop/Spark make it easier to process the data for training. Spark has also the benefit to have a shipped-in machine learning library (MLlib).</p>
+<p>Hadoop/Spark makes it easier to process the data for training. Spark has also the benefit to have a shipped-in machine learning library (MLlib).</p>
 
-<p>I used the python interface to Spark, pySpark, on AWS again. The python scripts used can be found on the github repository again: criteoSpark.py and helperFunctions.py. The latter defines the different function I used for training.</p>
+<p>I used the python interface to Spark, pySpark, on AWS again. The python scripts used can be found on the github repository again: <a href="https://github.com/KPayet/CriteoKaggle/blob/master/criteoSpark.py">criteoSpark.py</a>  and <a href="https://github.com/KPayet/CriteoKaggle/blob/master/helperFunctions.py">helperFunctions.py</a> helperFunctions.py. The latter defines the different function I used for training.</p>
 
-<p>The part of the script from lines 30 to 71 was used to process the data and train a logistic regression model using one-hot encoding. It works perfectly fine with the sample fine, however, it can be challenging to use with the full data set as it requires a lot of memory for the processing, exactly like it was in R.</p>
+<p>The part of the script from lines 30 to 71 was used to process the data and train a logistic regression model using one-hot encoding. It works perfectly fine with the sample file; however, it can be challenging to use with the full data set as it requires a lot of memory for the processing, exactly like it was in R.</p>
 
-<p>Instead, I now process using feature hashing, and train a logistic regression model again. Here's is how the script works:</p>
+<p>Instead, I use feature hashing, and train a logistic regression model again. Here's is how the script works:</p>
 
 <pre><code># Load data
 rawData = (sc.textFile("./train.txt", 256) # change value here for number of partitions
@@ -131,7 +144,7 @@ rawTestSet = (sc.textFile("test.txt", 10) # change value here for number of part
 
 </code></pre>
 
-<p>After creating the SparkContext, I load the training data in RDD, and split it between a train set and holdout validation set that I use to perform a quick grid search for logitic regression parameters. For the test set, I do the same, with the extra step of adding a fake label at the beginning of each observation. This step is only required for creating the submission file that complies with the format required for Kaggle submission.</p>
+<p>After creating the SparkContext, I load the training data in RDD, and split it between a train set and holdout validation set that I use to perform a quick grid search for logitic regression parameters. For the test set, I do the same, with the extra step of adding a fake label at the beginning of each observation. This step is only required for creating a submission file that complies with the format required for Kaggle submission.</p>
 
 <p>The features are then vectorized using createHashedPoint function that is defined inside the helperFunctions script, together with all functions required.</p>
 
@@ -141,13 +154,13 @@ hashedValidationData = rawValidationData.map(lambda point: createHashedPoint(poi
 hashedValidationData.cache()
 </code></pre>
 
-<p>I then perform a simple grid search, for the step size and regularization parameter required by the LogisticRegressionWithSGD function from MLlib. In this loop, I decided to fix the number of iterations to 500. It could be also included in the grid search, but my goal here is mainly to obtain a training routine that works, instead of obtaining the best possible result, which would require much more computation, hence a much larger cost, since I'm working on AWS.</p>
+<p>I then perform a simple grid search, for the step size and regularization parameter required by the LogisticRegressionWithSGD function from MLlib. In this loop, I decided to fix the number of iterations to 500. It could (should?) be set higher, or included in the grid search, but my goal here is mainly to obtain a training routine that works, instead of obtaining the best possible result, which would require much more computation, hence a much larger cost, since I'm working on AWS.</p>
 
 <pre><code>bestModel = None
 bestLogLoss = float("inf")
 
-stepSizes = [1, 5, 10, 20]
-regParams = [0.000001, 0.0001, 0.001, 0.01]
+stepSizes = [1, 3, 6, 9, 12, 15, 18, 21]
+regParams = [0.0000001, 0.000001, 0.00001, 0.0001, 0.001, 0.01, 0.1]
 
 from pyspark.mllib.classification import LogisticRegressionWithSGD
 
@@ -175,7 +188,12 @@ testPredictions = (testHashed.map(lambda p: (p.label, getCTRProb(p.features, bes
                              .saveAsTextFile("predictions.csv"))
 </code></pre>
 
-<p>I submitted the output created this way to Kaggle and got a score of ...</p>
+<p>I submitted the output created this way to Kaggle and got a score of 0.4630, right in the top 20%. </p> 
+
+<img src="img/spark_submission.PNG">
+
+<p>The training procedure here is quite simple, apart from the grid search, so it is even a bit surprising that a simple logistic regression could beat the benchmark (logistic regression too!) by such a margin. But, it could simply come from their implementation. </p>
+<p>There is still a lot that could be done to improve this model. Further parameter optimization, and more training. I could also introduce quadratic features, for the categorical and integer features. it is quite easy to do se with pyspark (using itertools package). <br/>I know that the some of the top entries in the competition did it, and it resulted in good improvement of the overall predictive power of their model. </p>
 
       <footer class="site-footer">
         <span class="site-footer-owner"><a href="https://github.com/KPayet/CriteoKaggle">CriteoKaggle</a> is maintained by <a href="https://github.com/KPayet">KPayet</a>.</span>
