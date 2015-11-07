@@ -20,11 +20,14 @@
 
     <section class="main-content">
 
-<p>2015-10-29</p>
-
 <p>This page describes my work on the Criteo challenge hosted on Kaggle more than a year ago. This is an interesting data set, that can be tricky to deal with because of the memory required; which is the first reason why I decided to work on it. The current page explains how I approached this problem.</p>
 
-<p>The goal of this challenge was to produce a ML model for predicting Click-Through-Rate (CTR), using a bunch of features provided by Criteo. For more details on the challenge, see the <a href="https://www.kaggle.com/c/criteo-display-ad-challenge">Kaggle page</a>. <br/>
+<p>The goal of this challenge was to produce a ML model for predicting Click-Through-Rate (CTR), using a set of features provided by Criteo. For more details on the challenge, see the <a href="https://www.kaggle.com/c/criteo-display-ad-challenge">Kaggle page</a>. <br/>
+	<p>But first, why is that even interesting? <br/> Well, here's Criteo's problem. Basically, advertisers pay Criteo to serve ads for them, to people that are already engaged in some way with their website, so that, naturally, they will come back. The ads are displayed on a variety of sites all over the web. <br/>
+		But here's the tricky part: advertisers only pay if the user actually click on the ad.<br/>
+		
+		So, if Criteo wants to make any money, they have to ensure that the largest number of users possible will click on those ads. How? Simply by displaying the ads that have the largest probability of being clicked on, i.e. the largest CTR. And this is where this Click-Through-Rate prediction is needed. Basically, the more precise the predictions, the more money you make... <br/>Of course, this is extremely simplified, but you get the idea.		
+	</p>
 Even though the challenge closed more than a year ago, Criteo keeps the data available <a href="http://labs.criteo.com/downloads/2014-kaggle-display-advertising-challenge-dataset/">here</a>. <br/>
 Note that criteo released a new dataset for CTR prediction, the <a href="http://labs.criteo.com/downloads/download-terabyte-click-logs/">Terabyte Click Logs</a>, that is similar to the previous one, only far bigger (over 4 billion lines, and over 1TB). In the near future, I might update this page with the new data.</p>
 
