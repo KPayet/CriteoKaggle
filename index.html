@@ -31,7 +31,7 @@
 Even though the challenge closed more than a year ago, Criteo has kept the data available <a href="http://labs.criteo.com/downloads/2014-kaggle-display-advertising-challenge-dataset/">here</a>. <br/>
 Note that criteo released a new dataset for CTR prediction, the <a href="http://labs.criteo.com/downloads/download-terabyte-click-logs/">Terabyte Click Logs</a>, that is similar to the previous one, only far bigger (over 4 billion lines, and over 1TB). In the near future, I might update this page with the new data.</p>
 
-<p>The data page allows one to download the full data set, or the sample one. The sample archive (dac_sample.tar.gz) contains the "dac_sample.txt" file, with 100K observations. The full dataset contains the "train.txt" and "test.txt" files (~11GB and 1.4GB respectively when uncompressed). The train file contains 45M+ observations, with 39 features + 1 label. The test file contains only the features, and the evaluation of ones predictions are meant to be computed by the Kaggle system.</p>
+<p>The data page allows one to download the full data set, or the sample one. The sample archive (dac_sample.tar.gz) contains the "dac_sample.txt" file, with 100K observations. The full dataset contains the "train.txt" and "test.txt" files (~11 GB and 1.4 GB respectively when uncompressed). The train file contains 45M+ observations, with 39 features + 1 label. The test file contains only the features, and the evaluation of ones predictions are meant to be computed by the Kaggle system.</p>
 
 <p>Before the full training, I started exploring the dataset with R, to decide how it should be processed ...</p>
 
@@ -91,7 +91,7 @@ The problem with this approach is that, combined together, the 26 categorical fe
 <pre><code>trainHashFeats = hashed.model.matrix(~ .-1, data = train[,2:40], hash.size = 2^16, transpose = F)
 </code></pre>
 
-<p>In R, this command results in a sparse matrix of 19.6GB in memory. </p>
+<p>In R, this command results in a sparse matrix of 19.6 GB in memory. </p>
 
 <h3>
 <a id="training-with-xgboost" class="anchor" href="#training-with-xgboost" aria-hidden="true"><span class="octicon octicon-link"></span></a>Training with xgboost</h3>
