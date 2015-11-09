@@ -149,4 +149,4 @@ def createHashedPoint(point, nBuckets):
     nonZeroIndices = range(13) + nonZeroIndices
     nonZeroValues = [float(x[1]) for x in feats[0:13] ] + nonZeroValues
 
-    return LabeledPoint(label, SparseVector(nBuckets, nonZeroIndices, nonZeroValues))
+    return LabeledPoint(label, SparseVector(nBuckets + 13, nonZeroIndices, nonZeroValues))
