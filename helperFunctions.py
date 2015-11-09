@@ -43,7 +43,10 @@ def parse(point):
     i=0
     pList = []
     for feat in point.split(',')[1:]:
-        pList.append((i, feat))
+        if i <= 12 and feat == "":
+            pList.append((i, "0"))
+        else:
+            pList.append((i, feat))
         i=i+1
 
     return pList
@@ -138,10 +141,12 @@ def createHashedPoint(point, nBuckets):
     label = splitPoint[0]
     feats = parse(point)
 
-    hashedFeats = hashThis(nBuckets, feats)
+    hashedFeats = hashThis(nBuckets, feats[13:]) # pass only categorical features
 
-    nonZeroIndices = sorted([key for key in hashedFeats])
-    nonZeroValues = [hashedFeats[key] for key in nonZeroIndices]
+    nonZeroIndices = sorted([key + 13 for key in hashedFeats])
+    nonZeroValues = [hashedFeats[key - 13] for key in nonZeroIndices]
+
+    nonZeroIndices = range(13) + nonZeroIndices
+    nonZeroValues = [float(x[1]) for x in feats[0:13] ] + nonZeroValues
 
     return LabeledPoint(label, SparseVector(nBuckets, nonZeroIndices, nonZeroValues))
-
