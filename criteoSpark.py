@@ -8,7 +8,7 @@ from pyspark import SparkContext
 sc = SparkContext(appName="CriteoKaggle")
 
 # Load data
-rawData = (sc.textFile("./dac_sample.txt", 10) # change value here for number of partitions
+rawData = (sc.textFile("./train.txt", 10) # change value here for number of partitions
 		     .map(lambda x: x.replace('\t', ',')))
 
 
@@ -26,6 +26,24 @@ rawTestSet = (sc.textFile("test.txt", 10) # change value here for number of part
 				.zipWithIndex()
 				.map(lambda t: str( t[1] + 60000000 ) + "," + t[0] ))
 
+# Perform integer features normalization:
+# Compute mean and sd for each features and standardize every value
+# Missing values simply becomes zero
+
+intFeatAvgTrain = rawTrainData.map(lambda point: parse(point))
+                        .flatMap(lambda feats: feats[0:13])
+                        .filter(lambda t: t[1] != "")
+                        .map(lambda t: (t[0], float(t[1])))
+                        .combineByKey(lambda value: (value, 1), lambda x, value: (x[0] + float(value), x[1] + 1), lambda x, y: (x[0] + y[0], x[1] + y[1]))
+                        .map(lambda (label, (value_sum, count)): (label, value_sum / count))
+                        .collectAsMap()
+
+intFeatSigmaTrain = rawTrainData.map(lambda point: parse(point))
+                        .flatMap(lambda feats: feats[0:13])
+                        .filter(lambda t: t[1] != "")
+                        .groupByKey()
+                        .map(lambda t: (t[0], numpy.std(list(t[1]))))
+                        .collectAsMap()
 
 # Processing using One-hot encoding
 
@@ -70,7 +88,7 @@ rawTestSet = (sc.textFile("test.txt", 10) # change value here for number of part
 #                          .saveAsTextFile("./predictions.csv"))
 #
 
- # Using feature hashing instead of OHE
+## Using feature hashing instead of OHE
 
 hashedTrainData = rawTrainData.map(lambda point: createHashedPoint(point, 2**15))
 hashedTrainData.cache()

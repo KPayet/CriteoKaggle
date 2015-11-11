@@ -43,10 +43,7 @@ def parse(point):
     i=0
     pList = []
     for feat in point.split(',')[1:]:
-        if i <= 12 and feat == "":
-            pList.append((i, "0"))
-        else:
-            pList.append((i, feat))
+        pList.append((i, feat))
         i=i+1
 
     return pList
