@@ -26,24 +26,12 @@ rawTestSet = (sc.textFile("test.txt", 10) # change value here for number of part
 				.zipWithIndex()
 				.map(lambda t: str( t[1] + 60000000 ) + "," + t[0] ))
 
-# Perform integer features normalization:
-# Compute mean and sd for each features and standardize every value
-# Missing values simply becomes zero
+# Compute mean and sd for each features
+# These dictionaries will be used later to standardize integer features
 
-intFeatAvgTrain = rawTrainData.map(lambda point: parse(point))
-                        .flatMap(lambda feats: feats[0:13])
-                        .filter(lambda t: t[1] != "")
-                        .map(lambda t: (t[0], float(t[1])))
-                        .combineByKey(lambda value: (value, 1), lambda x, value: (x[0] + float(value), x[1] + 1), lambda x, y: (x[0] + y[0], x[1] + y[1]))
-                        .map(lambda (label, (value_sum, count)): (label, value_sum / count))
-                        .collectAsMap()
-
-intFeatSigmaTrain = rawTrainData.map(lambda point: parse(point))
-                        .flatMap(lambda feats: feats[0:13])
-                        .filter(lambda t: t[1] != "")
-                        .groupByKey()
-                        .map(lambda t: (t[0], numpy.std(list(t[1]))))
-                        .collectAsMap()
+intFeatAvgTrain, intFeatSDTrain = intFeatsMeanSD(rawTrainData)
+intFeatAvgValid, intFeatSDValid = intFeatsMeanSD(rawValidationData)
+intFeatAvgTest, intFeatSDTest   = intFeatsMeanSD(rawTestSet)
 
 # Processing using One-hot encoding
 
@@ -90,9 +78,9 @@ intFeatSigmaTrain = rawTrainData.map(lambda point: parse(point))
 
 ## Using feature hashing instead of OHE
 
-hashedTrainData = rawTrainData.map(lambda point: createHashedPoint(point, 2**15))
+hashedTrainData = rawTrainData.map(lambda point: createHashedPoint(point, 2**15, intFeatAvgTrain, intFeatSDTrain))
 hashedTrainData.cache()
-hashedValidationData = rawValidationData.map(lambda point: createHashedPoint(point, 2**15))
+hashedValidationData = rawValidationData.map(lambda point: createHashedPoint(point, 2**15, intFeatAvgValid, intFeatSDValid))
 hashedValidationData.cache()
 
 
@@ -121,7 +109,7 @@ for stepSize in stepSizes:
 
 # predict on test set
 
-testHashed = rawTestSet.map(lambda point: createHashedPoint(point, 2**15))
+testHashed = rawTestSet.map(lambda point: createHashedPoint(point, 2**15, intFeatAvgTest, intFeatSDTest))
 
 testPredictions = (testHashed.map(lambda p: (p.label, getCTRProb(p.features, bestModel.weights, bestModel.intercept))) # in test label is simply observation Id, needed for Kaggle submission.
                              .map(lambda t: str(int(t[0])) + "," + str(t[1]))

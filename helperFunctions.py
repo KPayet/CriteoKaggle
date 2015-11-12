@@ -132,7 +132,7 @@ This function uses the parse function defined above, and the hash function
 to create for each observation a LabeledPoint, with label, and where features is a
 SparseVector containing the hashed features.
 """
-def createHashedPoint(point, nBuckets):
+def createHashedPoint(point, nBuckets, means, sds):
 
     splitPoint = point.split(',')
     label = splitPoint[0]
@@ -143,7 +143,37 @@ def createHashedPoint(point, nBuckets):
     nonZeroIndices = sorted([key + 13 for key in hashedFeats])
     nonZeroValues = [hashedFeats[key - 13] for key in nonZeroIndices]
 
-    nonZeroIndices = range(13) + nonZeroIndices
-    nonZeroValues = [float(x[1]) for x in feats[0:13] ] + nonZeroValues
+    # standardize integer features
+    normIntFeats = []
+    for i in range(13):
+        if feats[i][1] == "":
+            normIntFeats += [(i, 0)]
+        else:
+            normIntFeats += [(i, ( float(feats[i][1]) - means[i] ) / sds[i])]
 
-    return LabeledPoint(label, SparseVector(nBuckets + 13, nonZeroIndices, nonZeroValues))
+    nonZeroIntIndexes = [x[0] for x in normIntFeats if x[1] != 0]
+    nonZeroIntValues  = [x[1] for x in normIntFeats if x[1] != 0]
+
+    nonZeroIndices = nonZeroIntIndexes + nonZeroIndices
+    nonZeroValues  = nonZeroIntValues  + nonZeroValues
+
+    return LabeledPoint(label, SparseVector(nBuckets + len(nonZeroIntIndexes), nonZeroIndices, nonZeroValues))
+
+"""
+This function computes the means and standard deviations for each integer feature
+"""
+def intFeatsMeanSD(data):
+
+    tmpRDD = (data.map(lambda point: parse(point))
+                  .flatMap(lambda feats: feats[0:13])
+                  .filter(lambda t: t[1] != "")
+                  .groupByKey())
+
+    means = (tmpRDD.map(lambda t: (t[0], numpy.mean(list(t[1]))))
+                   .collectAsMap())
+
+    sds = (tmpRDD.map(lambda t: (t[0], numpy.std(list(t[1]))))
+                 .collectAsMap())
+    return means, sds
+
+
