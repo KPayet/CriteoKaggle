@@ -157,23 +157,24 @@ def createHashedPoint(point, nBuckets, means, sds):
     nonZeroIndices = nonZeroIntIndexes + nonZeroIndices
     nonZeroValues  = nonZeroIntValues  + nonZeroValues
 
-    return LabeledPoint(label, SparseVector(nBuckets + len(nonZeroIntIndexes), nonZeroIndices, nonZeroValues))
+    return LabeledPoint(label, SparseVector(nBuckets + 13, nonZeroIndices, nonZeroValues))
 
 """
 This function computes the means and standard deviations for each integer feature
 """
+from numpy import mean
+from numpy import std
 def intFeatsMeanSD(data):
 
     tmpRDD = (data.map(lambda point: parse(point))
                   .flatMap(lambda feats: feats[0:13])
                   .filter(lambda t: t[1] != "")
+		  .map(lambda t: ( t[0], float(t[1]) ) )
                   .groupByKey())
 
-    means = (tmpRDD.map(lambda t: (t[0], numpy.mean(list(t[1]))))
+    means = (tmpRDD.map(lambda t: (t[0], mean(list(t[1]))))
                    .collectAsMap())
 
-    sds = (tmpRDD.map(lambda t: (t[0], numpy.std(list(t[1]))))
+    sds = (tmpRDD.map(lambda t: (t[0], std(list(t[1]))))
                  .collectAsMap())
     return means, sds
-
-
