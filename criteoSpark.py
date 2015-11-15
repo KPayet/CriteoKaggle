@@ -78,9 +78,9 @@ intFeatAvgTest, intFeatSDTest   = intFeatsMeanSD(rawTestSet)
 
 ## Using feature hashing instead of OHE
 
-hashedTrainData = rawTrainData.map(lambda point: createHashedPoint(point, 2**15, intFeatAvgTrain, intFeatSDTrain))
+hashedTrainData = rawTrainData.map(lambda point: createHashedPoint(point, 2**17, intFeatAvgTrain, intFeatSDTrain))
 hashedTrainData.cache()
-hashedValidationData = rawValidationData.map(lambda point: createHashedPoint(point, 2**15, intFeatAvgValid, intFeatSDValid))
+hashedValidationData = rawValidationData.map(lambda point: createHashedPoint(point, 2**17, intFeatAvgValid, intFeatSDValid))
 hashedValidationData.cache()
 
 
@@ -90,26 +90,41 @@ hashedValidationData.cache()
 bestModel = None
 bestLogLoss = float("inf")
 
-stepSizes = [1, 5, 10, 20]
+# I'm using LBFGS optimization for speed of convergence
+
 regParams = [0.000001, 0.0001, 0.001, 0.01]
+corrections = [3, 10, 30]
+tolerances = [3e-5, 1e-4, 3e-4]
 
-from pyspark.mllib.classification import LogisticRegressionWithSGD
+bestReg = 0
+bestCor = 0
+bestTol = 0
 
-for stepSize in stepSizes:
-    for regParam in regParams:
-        model = LogisticRegressionWithSGD.train(hashedTrainData, 500, stepSize, regParam=regParam, regType='l2', intercept=True)
-        logLossVa = (hashedValidationData.map(lambda p: (p.label, getCTRProb(p.features, model.weights, model.intercept)))
-                                         .map(lambda p: computeLogLoss(p[1], p[0]))
-                                         .reduce(lambda a,b: a+b))/hashedValidationData.count()
-#        logLossVa = evaluateModel(model, hashedValidationData)
-        if (logLossVa < bestLogLoss):
-            bestModel = model
-            bestLogLoss = logLossVa
+from pyspark.mllib.classification import LogisticRegressionWithLBFGS
+
+for reg in regParams:
+    for cor in corrections:
+        for tol in tolerances:
+
+            model = LogisticRegressionWithLBFGS.train(hashedTrainData, iterations=100, initialWeights=None, regParam=reg, regType='l2',
+            intercept=False, corrections=cor, tolerance=tol, validateData=True, numClasses=2)
+            logLossVa = (hashedValidationData.map(lambda p: (p.label, getCTRProb(p.features, model.weights, model.intercept)))
+                                             .map(lambda p: computeLogLoss(p[1], p[0]))
+                                             .reduce(lambda a,b: a+b))/hashedValidationData.count()
+    #        logLossVa = evaluateModel(model, hashedValidationData)
+            if (logLossVa < bestLogLoss):
+                bestModel = model
+                bestLogLoss = logLossVa
+                bestReg = reg
+                bestCor = cor
+                bestTol = tol
+
+print bestLogLoss, bestReg, bestCor, bestTol
 
 
 # predict on test set
 
-testHashed = rawTestSet.map(lambda point: createHashedPoint(point, 2**15, intFeatAvgTest, intFeatSDTest))
+testHashed = rawTestSet.map(lambda point: createHashedPoint(point, 2**17, intFeatAvgTest, intFeatSDTest))
 
 testPredictions = (testHashed.map(lambda p: (p.label, getCTRProb(p.features, bestModel.weights, bestModel.intercept))) # in test label is simply observation Id, needed for Kaggle submission.
                              .map(lambda t: str(int(t[0])) + "," + str(t[1]))
