@@ -8,7 +8,7 @@ from pyspark import SparkContext
 sc = SparkContext(appName="CriteoKaggle")
 
 # Load data
-rawData = (sc.textFile("./train.txt", 10) # change value here for number of partitions
+rawData = (sc.textFile("./train.txt", 1024) # change value here for number of partitions
 		     .map(lambda x: x.replace('\t', ',')))
 
 
@@ -21,7 +21,7 @@ rawTrainData.cache()
 rawValidationData.cache()
 
 # Make sure that label is simply Id for the test set, i.e. the line of the observation + 59999999
-rawTestSet = (sc.textFile("test.txt", 10) # change value here for number of partitions
+rawTestSet = (sc.textFile("test.txt", 128) # change value here for number of partitions
                 .map(lambda x: x.replace('\t', ','))
 				.zipWithIndex()
 				.map(lambda t: str( t[1] + 60000000 ) + "," + t[0] ))
@@ -92,9 +92,9 @@ bestLogLoss = float("inf")
 
 # I'm using LBFGS optimization for speed of convergence
 
-regParams = [0.000001, 0.0001, 0.001, 0.01]
-corrections = [3, 10, 30]
-tolerances = [3e-5, 1e-4, 3e-4]
+regParams = [1e-3]
+corrections = [30]
+tolerances = [1e-4]
 
 bestReg = 0
 bestCor = 0
@@ -112,7 +112,8 @@ for reg in regParams:
                                              .map(lambda p: computeLogLoss(p[1], p[0]))
                                              .reduce(lambda a,b: a+b))/hashedValidationData.count()
     #        logLossVa = evaluateModel(model, hashedValidationData)
-            if (logLossVa < bestLogLoss):
+            print logLossVa, reg, cor, tol
+	    if (logLossVa < bestLogLoss):
                 bestModel = model
                 bestLogLoss = logLossVa
                 bestReg = reg
@@ -128,12 +129,5 @@ testHashed = rawTestSet.map(lambda point: createHashedPoint(point, 2**17, intFea
 
 testPredictions = (testHashed.map(lambda p: (p.label, getCTRProb(p.features, bestModel.weights, bestModel.intercept))) # in test label is simply observation Id, needed for Kaggle submission.
                              .map(lambda t: str(int(t[0])) + "," + str(t[1]))
-                             .coalesce(1)
-                             .saveAsTextFile("predictions_2.csv"))
-
-
-
-
-
-
+                             .saveAsTextFile("predictions.csv"))
 
