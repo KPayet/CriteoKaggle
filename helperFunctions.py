@@ -131,17 +131,22 @@ def hashThis(nBuckets = 2**16, features = None):
 This function uses the parse function defined above, and the hash function
 to create for each observation a LabeledPoint, with label, and where features is a
 SparseVector containing the hashed features.
+The current version computes quadratic features from the original features by default.
 """
+import itertools
 def createHashedPoint(point, nBuckets, means, sds):
 
     splitPoint = point.split(',')
     label = splitPoint[0]
     feats = parse(point)
 
-    hashedFeats = hashThis(nBuckets, feats[13:]) # pass only categorical features
+    catFeats = feats[13:]
+    # compute interactions between categorical features
+    quadCatFeats = [x[0]+x[1] for x in itertools.combinations(catFeats, catFeats)]
+    hashedFeats = hashThis(nBuckets, catFeats + quadCatFeats) # pass only categorical features
 
-    nonZeroIndices = sorted([key + 13 for key in hashedFeats])
-    nonZeroValues = [hashedFeats[key - 13] for key in nonZeroIndices]
+    nonZeroIndices = sorted([key + 91 for key in hashedFeats])
+    nonZeroValues = [hashedFeats[key - 91] for key in nonZeroIndices]
 
     # standardize integer features
     normIntFeats = []
@@ -150,14 +155,18 @@ def createHashedPoint(point, nBuckets, means, sds):
             normIntFeats += [(i, 0)]
         else:
             normIntFeats += [(i, ( float(feats[i][1]) - means[i] ) / sds[i])]
+    # create quadratic features for numeric features
+    intFeats = [x[1] for x in normIntFeats]
+    quadFeats = [x[0]*x[1] for x in itertools.combinations(intFeats, intFeats)]
+    intFeats = intFeats + quadFeats
 
-    nonZeroIntIndexes = [x[0] for x in normIntFeats if x[1] != 0]
-    nonZeroIntValues  = [x[1] for x in normIntFeats if x[1] != 0]
+    nonZeroIntIndexes = [i for i in range(len(intFeats)) if intFeats[i] != 0]
+    nonZeroIntValues  = [intFeats[i] for i in nonZeroIntIndexes]
 
     nonZeroIndices = nonZeroIntIndexes + nonZeroIndices
     nonZeroValues  = nonZeroIntValues  + nonZeroValues
 
-    return LabeledPoint(label, SparseVector(nBuckets + 13, nonZeroIndices, nonZeroValues))
+    return LabeledPoint(label, SparseVector(nBuckets + 91, nonZeroIndices, nonZeroValues))
 
 """
 This function computes the means and standard deviations for each integer feature
