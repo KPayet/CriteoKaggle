@@ -142,11 +142,12 @@ def createHashedPoint(point, nBuckets, means, sds):
 
     catFeats = feats[13:]
     # compute interactions between categorical features
-    quadCatFeats = [x[0]+x[1] for x in itertools.combinations(catFeats, catFeats)]
+    quadCatFeats = [(0, x[0][1]+x[1][1]) for x in itertools.combinations_with_replacement(catFeats, 2)]
+    quadCatFeats = [(i+39, quadCatFeats[i][1]) for i in range(351)] # we have 26*27/2 = 351 interactions for categorical features
     hashedFeats = hashThis(nBuckets, catFeats + quadCatFeats) # pass only categorical features
 
-    nonZeroIndices = sorted([key + 91 for key in hashedFeats])
-    nonZeroValues = [hashedFeats[key - 91] for key in nonZeroIndices]
+    nonZeroIndices = sorted([key + 104 for key in hashedFeats])
+    nonZeroValues = [hashedFeats[key - 104] for key in nonZeroIndices]
 
     # standardize integer features
     normIntFeats = []
@@ -157,7 +158,7 @@ def createHashedPoint(point, nBuckets, means, sds):
             normIntFeats += [(i, ( float(feats[i][1]) - means[i] ) / sds[i])]
     # create quadratic features for numeric features
     intFeats = [x[1] for x in normIntFeats]
-    quadFeats = [x[0]*x[1] for x in itertools.combinations(intFeats, intFeats)]
+    quadFeats = [x[0]*x[1] for x in itertools.combinations_with_replacement(intFeats, 2)]
     intFeats = intFeats + quadFeats
 
     nonZeroIntIndexes = [i for i in range(len(intFeats)) if intFeats[i] != 0]
@@ -166,7 +167,7 @@ def createHashedPoint(point, nBuckets, means, sds):
     nonZeroIndices = nonZeroIntIndexes + nonZeroIndices
     nonZeroValues  = nonZeroIntValues  + nonZeroValues
 
-    return LabeledPoint(label, SparseVector(nBuckets + 91, nonZeroIndices, nonZeroValues))
+    return LabeledPoint(label, SparseVector(nBuckets + 104, nonZeroIndices, nonZeroValues))
 
 """
 This function computes the means and standard deviations for each integer feature
